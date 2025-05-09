@@ -21,11 +21,20 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(imgui)
 
+# GLM
+FetchContent_Declare(
+  glm
+  GIT_REPOSITORY https://github.com/g-truc/glm.git
+  GIT_TAG 1.0.1
+)
+FetchContent_MakeAvailable(glm)
+
 add_executable(${PROJECT_NAME} src/main.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
   ${imgui_SOURCE_DIR}
   ${imgui_SOURCE_DIR}/backends
+  ${glm_SOURCE_DIR}
 )
 
 
