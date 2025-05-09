@@ -37,9 +37,14 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${glm_SOURCE_DIR}
 )
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/triangle.vert ${CMAKE_CURRENT_BINARY_DIR}/triangle.vert COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/triangle.frag ${CMAKE_CURRENT_BINARY_DIR}/triangle.frag COPYONLY)
+
+
 
 target_sources(${PROJECT_NAME} PRIVATE
     src/gui_handler.cpp
+    src/load_shader.cpp
 ${imgui_SOURCE_DIR}/imgui.cpp
 ${imgui_SOURCE_DIR}/imgui_draw.cpp
 ${imgui_SOURCE_DIR}/imgui_tables.cpp
