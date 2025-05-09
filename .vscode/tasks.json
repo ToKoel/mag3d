@@ -1,0 +1,40 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "CMake Build",
+        "type": "shell",
+        "command": "cmake",
+        "args": [
+          "-S", ".",        // source dir
+          "-B", "build",    // build dir
+          "-DCMAKE_BUILD_TYPE=Debug"
+        ],
+        "group": "build",
+        "problemMatcher": []
+      },
+      {
+        "label": "Build Executable",
+        "type": "shell",
+        "command": "cmake",
+        "args": [
+          "--build", "build"
+        ],
+        "group": "build",
+        "dependsOn": ["CMake Build"],
+        "problemMatcher": []
+      },
+      {
+        "label": "Run App",
+        "type": "shell",
+        "command": "${workspaceFolder}/build/magneticVis",
+        "group": {
+          "kind": "test",
+          "isDefault": true
+        },
+        "dependsOn": ["Build Executable"],
+        "problemMatcher": []
+      }
+    ]
+  }
+  
