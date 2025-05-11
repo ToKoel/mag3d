@@ -167,6 +167,11 @@ template <std::size_t N, std::size_t K>
 std::pair<GLuint, GLuint> init_shape(
     const std::array<GLfloat, N>& vertex_buffer_data,
     const std::array<GLfloat, K>& color_buffer_data) {
+  // Enable depth test
+  glEnable(GL_DEPTH_TEST);
+  // Accept fragment if it closer to the camera than the former one
+  glDepthFunc(GL_LESS);
+
   GLuint vertex_array_id;
   glGenVertexArrays(1, &vertex_array_id);
   glBindVertexArray(vertex_array_id);
@@ -237,7 +242,7 @@ std::pair<GLuint, GLuint> init_cube() {
 
 void draw_shape(GLuint vertexbuffer, GLuint colorbuffer, GLuint programId,
                 size_t number_of_triangles) {
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glUseProgram(programId);
 
   // 1st attribute buffer : vertices
