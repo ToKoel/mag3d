@@ -2,14 +2,21 @@
 
 #include <OpenGL/gl3.h>
 #include <OpenGL/glu.h>
+#include <imgui_impl_opengl3_loader.h>
 #include <stdio.h>
 
 #include <array>
+#include <cmath>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <iostream>
+#include <vector>
 
+#include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl2.h"
 #include "load_shader.hpp"
-#include "sphere.hpp"
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <SDL_opengles2.h>
 #else
