@@ -112,6 +112,33 @@ void draw_control_window(float* angle_x, float* angle_y) {
   ImGui::End();
 }
 
+glm::mat4 get_view_matrix(float width, float height) {
+  // Projection matrix: 45° Field of View, 4:3 ratio, display range: 0.1 unit
+  // <-> 100 units
+  glm::mat4 projection =
+      glm::perspective(glm::radians(45.0f), width / height, 0.1f, 100.0f);
+
+  // Or, for an ortho camera:
+  // glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f);
+  // // In world coordinates
+
+  // Camera matrix
+  glm::mat4 view = glm::lookAt(
+      glm::vec3(4, 3, 3),  // Camera is at (4,3,3), in World Space
+      glm::vec3(0, 0, 0),  // and looks at the origin
+      glm::vec3(0, 1, 0)   // Head is up (set to 0,-1,0 to look upside-down)
+  );
+
+  // Model matrix: an identity matrix (model will be at the origin)
+  glm::mat4 model = glm::mat4(1.0f);
+  // Our ModelViewProjection: multiplication of our 3 matrices
+  glm::mat4 mvp =
+      projection * view *
+      model;  // Remember, matrix multiplication is the other way around
+
+  return mvp;
+}
+
 void GuiHandler::shutdown() {
   // Cleanup
   ImGui_ImplOpenGL3_Shutdown();
@@ -183,11 +210,15 @@ void GuiHandler::start_main_loop() {
   bool rotate = true;
 
   GLuint vertexbuffer = init_triangle();
-  GLuint programId = load_shaders(
+  GLuint program_id = load_shaders(
       "/Users/tobiaskohler/Documents/projects/magnetic/src/shaders/"
       "triangle.vert",
       "/Users/tobiaskohler/Documents/projects/magnetic/src/shaders/"
       "triangle.frag");
+
+  GLuint matrix_id = glGetUniformLocation(program_id, "MVP");
+
+  auto mvp = get_view_matrix(1200.0f, 800.0f);
 
   while (!done) {
     SDL_Event event;
@@ -205,7 +236,8 @@ void GuiHandler::start_main_loop() {
 
     draw_control_window(&angle_x, &angle_y);
 
-    draw_triangle(vertexbuffer, programId);
+    draw_triangle(vertexbuffer, program_id);
+    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
 
     ImGui::Render();
 
