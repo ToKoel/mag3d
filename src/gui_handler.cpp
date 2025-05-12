@@ -11,6 +11,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <span>
 #include <vector>
 
 #include "imgui.h"
@@ -111,6 +112,7 @@ bool GuiHandler::init() {
   // Setup Platform/Renderer backends
   ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
   ImGui_ImplOpenGL3_Init(glsl_version);
+  glEnable(GL_CULL_FACE);
 
   return true;
 }
@@ -159,10 +161,8 @@ void GuiHandler::handle_events(SDL_Event* event) {
   }
 }
 
-template <std::size_t N, std::size_t K>
-std::pair<GLuint, GLuint> init_shape(
-    const std::array<GLfloat, N>& vertex_buffer_data,
-    const std::array<GLfloat, K>& color_buffer_data) {
+std::pair<GLuint, GLuint> init_shape(std::span<GLfloat> vertex_buffer_data,
+                                     std::span<GLfloat> color_buffer_data) {
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
   // Accept fragment if it closer to the camera than the former one
@@ -179,23 +179,23 @@ std::pair<GLuint, GLuint> init_shape(
   // The following commands will talk about our 'vertexbuffer' buffer
   glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
   // Give our vertices to OpenGL.
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * N, vertex_buffer_data.data(),
-               GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertex_buffer_data.size(),
+               vertex_buffer_data.data(), GL_STATIC_DRAW);
 
   GLuint colorbuffer;
   glGenBuffers(1, &colorbuffer);
   glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * N, color_buffer_data.data(),
-               GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * color_buffer_data.size(),
+               color_buffer_data.data(), GL_STATIC_DRAW);
 
   return std::pair{vertexbuffer, colorbuffer};
 }
 
 std::pair<GLuint, GLuint> init_triangle() {
-  static const std::array<GLfloat, 9U> g_vertex_buffer_data = {
+  std::array<GLfloat, 9U> g_vertex_buffer_data{
       -1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
   };
-  static const std::array<GLfloat, 27U> g_color_buffer_data = {
+  std::array<GLfloat, 27U> g_color_buffer_data{
       0.583f, 0.771f, 0.014f, 0.609f, 0.115f, 0.436f, 0.327f, 0.483f, 0.844f,
       0.822f, 0.569f, 0.201f, 0.435f, 0.602f, 0.223f, 0.310f, 0.747f, 0.185f,
       0.597f, 0.770f, 0.761f, 0.559f, 0.436f, 0.730f, 0.359f, 0.583f, 0.152f};
@@ -204,7 +204,7 @@ std::pair<GLuint, GLuint> init_triangle() {
 }
 
 std::pair<GLuint, GLuint> init_cube() {
-  static const std::array<GLfloat, 128U> g_vertex_buffer_data = {
+  std::array<GLfloat, 128U> g_vertex_buffer_data{
       -1.0f, -1.0f, -1.0f,                       // triangle 1 : begin
       -1.0f, -1.0f, 1.0f,  -1.0f, 1.0f,  1.0f,   // triangle 1 : end
       1.0f,  1.0f,  -1.0f,                       // triangle 2 : begin
@@ -219,7 +219,7 @@ std::pair<GLuint, GLuint> init_cube() {
       1.0f,  -1.0f, 1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  -1.0f, -1.0f, 1.0f,
       1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  1.0f,  1.0f,  -1.0f, 1.0f};
 
-  static const std::array<GLfloat, 384> g_color_buffer_data = {
+  std::array<GLfloat, 384> g_color_buffer_data{
       0.583f, 0.771f, 0.014f, 0.609f, 0.115f, 0.436f, 0.327f, 0.483f, 0.844f,
       0.822f, 0.569f, 0.201f, 0.435f, 0.602f, 0.223f, 0.310f, 0.747f, 0.185f,
       0.597f, 0.770f, 0.761f, 0.559f, 0.436f, 0.730f, 0.359f, 0.583f, 0.152f,
@@ -274,11 +274,7 @@ void draw_shape(GLuint vertexbuffer, GLuint colorbuffer, GLuint programId,
 }
 
 void GuiHandler::start_main_loop() {
-  float rotation = 0.0f;
-  float angle_x = 0.0f, angle_y = 0.0f;
-  bool rotate = true;
-
-  std::pair<GLuint, GLuint> buffer_ids = init_cube();
+  const auto& [vertex_buffer_id, color_buffer_id] = init_cube();
   GLuint program_id = load_shaders(
       "/Users/tobiaskohler/Documents/projects/magnetic/src/shaders/"
       "triangle.vert",
@@ -287,7 +283,6 @@ void GuiHandler::start_main_loop() {
 
   GLuint matrix_id = glGetUniformLocation(program_id, "MVP");
 
-  bool dragging = false;
   SDL_Event event;
 
   while (!done) {
@@ -316,7 +311,7 @@ void GuiHandler::start_main_loop() {
 
     draw_control_window(&camera.vertical_angle, &camera.horizontal_angle);
 
-    draw_shape(buffer_ids.first, buffer_ids.second, program_id, 12);
+    draw_shape(vertex_buffer_id, color_buffer_id, program_id, 12);
 
     auto mvp = camera.get_view_matrix(window_width, window_height);
     glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
