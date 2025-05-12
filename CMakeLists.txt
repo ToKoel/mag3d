@@ -45,6 +45,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/triangle.frag ${CMAKE_CUR
 target_sources(${PROJECT_NAME} PRIVATE
     src/gui_handler.cpp
     src/load_shader.cpp
+    src/camera.cpp
 ${imgui_SOURCE_DIR}/imgui.cpp
 ${imgui_SOURCE_DIR}/imgui_draw.cpp
 ${imgui_SOURCE_DIR}/imgui_tables.cpp

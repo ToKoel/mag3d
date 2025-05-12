@@ -23,6 +23,8 @@
 #include <SDL_opengl.h>
 #endif
 
+GuiHandler::GuiHandler() : camera(Camera{}) {}
+
 bool GuiHandler::init() {
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) !=
       0) {
@@ -122,24 +124,6 @@ void draw_control_window(float* angle_x, float* angle_y) {
   ImGui::End();
 }
 
-glm::mat4 GuiHandler::get_view_matrix() {
-  glm::mat4 projection = glm::perspective(
-      glm::radians(field_of_view),
-      static_cast<float32_t>(window_width / window_height), 0.1f, 100.0f);
-
-  // Camera matrix
-  glm::mat4 view = glm::lookAt(position, position + direction, up);
-
-  // Model matrix: an identity matrix (model will be at the origin)
-  glm::mat4 model = glm::mat4(1.0f);
-  // Our ModelViewProjection: multiplication of our 3 matrices
-  glm::mat4 mvp =
-      projection * view *
-      model;  // Remember, matrix multiplication is the other way around
-
-  return mvp;
-}
-
 void GuiHandler::shutdown() {
   // Cleanup
   ImGui_ImplOpenGL3_Shutdown();
@@ -151,82 +135,27 @@ void GuiHandler::shutdown() {
   SDL_Quit();
 }
 
-void GuiHandler::update_camera_directions(float deltaX, float deltaY) {
-  horizontal_angle += deltaX * mouse_speed * delta_time;
-  vertical_angle += deltaY * mouse_speed * delta_time;
-  if (vertical_angle > 89.0f) vertical_angle = 89.0f;
-  if (vertical_angle < -89.0f) vertical_angle = -89.0f;
-
-  direction = glm::vec3(cos(vertical_angle) * sin(horizontal_angle),
-                        sin(vertical_angle),
-                        cos(vertical_angle) * cos(horizontal_angle));
-
-  right = glm::vec3(sin(horizontal_angle - 3.14f / 2.0f), 0,
-                    cos(horizontal_angle - 3.14f / 2.0f));
-
-  up = glm::cross(right, direction);
-}
-
 void GuiHandler::handle_events(SDL_Event* event) {
-  bool dragging = false;
+  if (event->type == SDL_MOUSEWHEEL) {
+    camera.update_field_of_view(event->wheel.y);
+  }
 
-  while (SDL_PollEvent(event)) {
-    ImGui_ImplSDL2_ProcessEvent(event);
-    switch (event->type) {
-      std::cout << event->type << "\n";
-      case SDL_MOUSEWHEEL:
-        if (event->wheel.y > 0) {
-          field_of_view *= 1.1f;  // Zoom in
-        } else if (event->wheel.y < 0) {
-          field_of_view /= 1.1f;  // Zoom out
-        }
-        break;
-      case SDL_KEYDOWN:
-      case SDL_KEYUP:
-        switch (event->key.keysym.sym) {
-          case SDLK_LEFT:
-            position -= right * (float)delta_time * speed;
-            break;
-          case SDLK_RIGHT:
-            position += right * (float)delta_time * speed;
-            break;
-          case SDLK_UP:
-            position += direction * (float)delta_time * speed;
-            break;
-          case SDLK_DOWN:
-            position -= direction * (float)delta_time * speed;
-            break;
-          default:
-            break;
-        }
-        break;
-      case SDL_MOUSEBUTTONDOWN:
-        if (event->button.button == SDL_BUTTON_LEFT) {
-          SDL_SetRelativeMouseMode(SDL_TRUE);
-          dragging = true;
-        }
-        break;
-      case SDL_MOUSEBUTTONUP:
-        if (event->button.button == SDL_BUTTON_LEFT) {
-          SDL_SetRelativeMouseMode(SDL_FALSE);
-          dragging = false;
-        }
-        break;
-      case SDL_MOUSEMOTION:
-        if (dragging) {
-          update_camera_directions(event->motion.xrel, event->motion.yrel);
-        }
-        break;
-      case SDL_QUIT:
-      case SDL_WINDOWEVENT:
-        if (event->window.event == SDL_WINDOWEVENT_CLOSE &&
-            event->window.windowID == SDL_GetWindowID(window)) {
-          done = true;
-        }
-        break;
-      default:
-        break;
-    }
+  if (event->type == SDL_QUIT) done = true;
+
+  if (event->type == SDL_MOUSEBUTTONDOWN &&
+      event->button.button == SDL_BUTTON_LEFT) {
+    dragging = true;
+    SDL_SetRelativeMouseMode(SDL_TRUE);
+  }
+  if (event->type == SDL_MOUSEBUTTONUP &&
+      event->button.button == SDL_BUTTON_LEFT) {
+    dragging = false;
+    SDL_SetRelativeMouseMode(SDL_FALSE);
+  }
+
+  if (event->type == SDL_MOUSEMOTION && dragging) {
+    camera.update_camera_directions(event->motion.xrel, event->motion.yrel,
+                                    (float)delta_time);
   }
 }
 
@@ -366,56 +295,14 @@ void GuiHandler::start_main_loop() {
     now_time = SDL_GetPerformanceCounter();
     delta_time =
         ((now_time - last_time) * 1000 / (double)SDL_GetPerformanceFrequency());
-    // handle_events(&event);
 
     while (SDL_PollEvent(&event)) {
       ImGui_ImplSDL2_ProcessEvent(&event);
-
-      if (event.type == SDL_MOUSEWHEEL) {
-        if (event.wheel.y > 0) {
-          field_of_view -= 1.0f;
-        }
-        if (event.wheel.y < 0) {
-          field_of_view += 1.0f;
-        }
-
-        if (field_of_view < 1.0f) field_of_view = 1.0f;
-        if (field_of_view > 90.0f) field_of_view = 90.0f;
-      }
-
-      if (event.type == SDL_QUIT) done = true;
-
-      if (event.type == SDL_MOUSEBUTTONDOWN &&
-          event.button.button == SDL_BUTTON_LEFT) {
-        dragging = true;
-        SDL_SetRelativeMouseMode(SDL_TRUE);
-      }
-      if (event.type == SDL_MOUSEBUTTONUP &&
-          event.button.button == SDL_BUTTON_LEFT) {
-        dragging = false;
-        SDL_SetRelativeMouseMode(SDL_FALSE);
-      }
-
-      if (event.type == SDL_MOUSEMOTION && dragging) {
-        update_camera_directions(event.motion.xrel, event.motion.yrel);
-      }
+      handle_events(&event);
     }
 
-    // --- 2. Handle Keyboard State ---
     const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
-
-    if (keyboardState[SDL_SCANCODE_RIGHT]) {
-      position += right * speed * (float)delta_time;
-    }
-    if (keyboardState[SDL_SCANCODE_LEFT]) {
-      position -= right * speed * (float)delta_time;
-    }
-    if (keyboardState[SDL_SCANCODE_UP]) {
-      position += up * speed * (float)delta_time;
-    }
-    if (keyboardState[SDL_SCANCODE_DOWN]) {
-      position -= up * speed * (float)delta_time;
-    }
+    camera.update_camera_position(keyboardState, delta_time);
 
     if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) {
       SDL_Delay(10);
@@ -427,11 +314,11 @@ void GuiHandler::start_main_loop() {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    draw_control_window(&vertical_angle, &horizontal_angle);
+    draw_control_window(&camera.vertical_angle, &camera.horizontal_angle);
 
     draw_shape(buffer_ids.first, buffer_ids.second, program_id, 12);
 
-    auto mvp = get_view_matrix();
+    auto mvp = camera.get_view_matrix(window_width, window_height);
     glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
 
     ImGui::Render();
