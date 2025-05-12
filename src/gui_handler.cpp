@@ -78,7 +78,7 @@ bool GuiHandler::init() {
 
   window = SDL_CreateWindow("Dear ImGui SDL2+OpenGL3 example",
                             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                            1280, 720, window_flags);
+                            window_width, window_height, window_flags);
   if (window == nullptr) {
     printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
     return false;
@@ -118,25 +118,17 @@ void draw_control_window(float* angle_x, float* angle_y) {
   ImGui::Text("Use this window to control rotation");
   ImGui::SliderFloat("Rotate X", angle_x, 0.0f, 360.0f);
   ImGui::SliderFloat("Rotate Y", angle_y, 0.0f, 360.0f);
+
   ImGui::End();
 }
 
-glm::mat4 get_view_matrix(float width, float height) {
-  // Projection matrix: 45° Field of View, 4:3 ratio, display range: 0.1 unit
-  // <-> 100 units
-  glm::mat4 projection =
-      glm::perspective(glm::radians(45.0f), width / height, 0.1f, 100.0f);
-
-  // Or, for an ortho camera:
-  // glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f);
-  // // In world coordinates
+glm::mat4 GuiHandler::get_view_matrix() {
+  glm::mat4 projection = glm::perspective(
+      glm::radians(field_of_view),
+      static_cast<float32_t>(window_width / window_height), 0.1f, 100.0f);
 
   // Camera matrix
-  glm::mat4 view = glm::lookAt(
-      glm::vec3(4, 3, 3),  // Camera is at (4,3,3), in World Space
-      glm::vec3(0, 0, 0),  // and looks at the origin
-      glm::vec3(0, 1, 0)   // Head is up (set to 0,-1,0 to look upside-down)
-  );
+  glm::mat4 view = glm::lookAt(position, position + direction, up);
 
   // Model matrix: an identity matrix (model will be at the origin)
   glm::mat4 model = glm::mat4(1.0f);
@@ -159,14 +151,82 @@ void GuiHandler::shutdown() {
   SDL_Quit();
 }
 
+void GuiHandler::update_camera_directions(float deltaX, float deltaY) {
+  horizontal_angle += deltaX * mouse_speed * delta_time;
+  vertical_angle += deltaY * mouse_speed * delta_time;
+  if (vertical_angle > 89.0f) vertical_angle = 89.0f;
+  if (vertical_angle < -89.0f) vertical_angle = -89.0f;
+
+  direction = glm::vec3(cos(vertical_angle) * sin(horizontal_angle),
+                        sin(vertical_angle),
+                        cos(vertical_angle) * cos(horizontal_angle));
+
+  right = glm::vec3(sin(horizontal_angle - 3.14f / 2.0f), 0,
+                    cos(horizontal_angle - 3.14f / 2.0f));
+
+  up = glm::cross(right, direction);
+}
+
 void GuiHandler::handle_events(SDL_Event* event) {
+  bool dragging = false;
+
   while (SDL_PollEvent(event)) {
     ImGui_ImplSDL2_ProcessEvent(event);
-    if (event->type == SDL_QUIT) done = true;
-    if (event->type == SDL_WINDOWEVENT &&
-        event->window.event == SDL_WINDOWEVENT_CLOSE &&
-        event->window.windowID == SDL_GetWindowID(window))
-      done = true;
+    switch (event->type) {
+      std::cout << event->type << "\n";
+      case SDL_MOUSEWHEEL:
+        if (event->wheel.y > 0) {
+          field_of_view *= 1.1f;  // Zoom in
+        } else if (event->wheel.y < 0) {
+          field_of_view /= 1.1f;  // Zoom out
+        }
+        break;
+      case SDL_KEYDOWN:
+      case SDL_KEYUP:
+        switch (event->key.keysym.sym) {
+          case SDLK_LEFT:
+            position -= right * (float)delta_time * speed;
+            break;
+          case SDLK_RIGHT:
+            position += right * (float)delta_time * speed;
+            break;
+          case SDLK_UP:
+            position += direction * (float)delta_time * speed;
+            break;
+          case SDLK_DOWN:
+            position -= direction * (float)delta_time * speed;
+            break;
+          default:
+            break;
+        }
+        break;
+      case SDL_MOUSEBUTTONDOWN:
+        if (event->button.button == SDL_BUTTON_LEFT) {
+          SDL_SetRelativeMouseMode(SDL_TRUE);
+          dragging = true;
+        }
+        break;
+      case SDL_MOUSEBUTTONUP:
+        if (event->button.button == SDL_BUTTON_LEFT) {
+          SDL_SetRelativeMouseMode(SDL_FALSE);
+          dragging = false;
+        }
+        break;
+      case SDL_MOUSEMOTION:
+        if (dragging) {
+          update_camera_directions(event->motion.xrel, event->motion.yrel);
+        }
+        break;
+      case SDL_QUIT:
+      case SDL_WINDOWEVENT:
+        if (event->window.event == SDL_WINDOWEVENT_CLOSE &&
+            event->window.windowID == SDL_GetWindowID(window)) {
+          done = true;
+        }
+        break;
+      default:
+        break;
+    }
   }
 }
 
@@ -255,8 +315,8 @@ void draw_shape(GLuint vertexbuffer, GLuint colorbuffer, GLuint programId,
   // 1st attribute buffer : vertices
   glEnableVertexAttribArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-  glVertexAttribPointer(0,  // attribute 0. No particular reason for 0, but must
-                            // match the layout in the shader.
+  glVertexAttribPointer(0,  // attribute 0. No particular reason for 0, but
+                            // must match the layout in the shader.
                         3,  // size
                         GL_FLOAT,  // type
                         GL_FALSE,  // normalized?
@@ -267,9 +327,9 @@ void draw_shape(GLuint vertexbuffer, GLuint colorbuffer, GLuint programId,
   // 2nd attribute buffer : colors
   glEnableVertexAttribArray(1);
   glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-  glVertexAttribPointer(1,  // attribute. No particular reason for 1, but must
-                            // match the layout in the shader.
-                        3,  // size
+  glVertexAttribPointer(1,         // attribute. No particular reason for 1, but
+                                   // must match the layout in the shader.
+                        3,         // size
                         GL_FLOAT,  // type
                         GL_FALSE,  // normalized?
                         0,         // stride
@@ -298,11 +358,64 @@ void GuiHandler::start_main_loop() {
 
   GLuint matrix_id = glGetUniformLocation(program_id, "MVP");
 
-  auto mvp = get_view_matrix(1200.0f, 800.0f);
+  bool dragging = false;
+  SDL_Event event;
 
   while (!done) {
-    SDL_Event event;
-    handle_events(&event);
+    last_time = now_time;
+    now_time = SDL_GetPerformanceCounter();
+    delta_time =
+        ((now_time - last_time) * 1000 / (double)SDL_GetPerformanceFrequency());
+    // handle_events(&event);
+
+    while (SDL_PollEvent(&event)) {
+      ImGui_ImplSDL2_ProcessEvent(&event);
+
+      if (event.type == SDL_MOUSEWHEEL) {
+        if (event.wheel.y > 0) {
+          field_of_view -= 1.0f;
+        }
+        if (event.wheel.y < 0) {
+          field_of_view += 1.0f;
+        }
+
+        if (field_of_view < 1.0f) field_of_view = 1.0f;
+        if (field_of_view > 90.0f) field_of_view = 90.0f;
+      }
+
+      if (event.type == SDL_QUIT) done = true;
+
+      if (event.type == SDL_MOUSEBUTTONDOWN &&
+          event.button.button == SDL_BUTTON_LEFT) {
+        dragging = true;
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+      }
+      if (event.type == SDL_MOUSEBUTTONUP &&
+          event.button.button == SDL_BUTTON_LEFT) {
+        dragging = false;
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+      }
+
+      if (event.type == SDL_MOUSEMOTION && dragging) {
+        update_camera_directions(event.motion.xrel, event.motion.yrel);
+      }
+    }
+
+    // --- 2. Handle Keyboard State ---
+    const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
+
+    if (keyboardState[SDL_SCANCODE_RIGHT]) {
+      position += right * speed * (float)delta_time;
+    }
+    if (keyboardState[SDL_SCANCODE_LEFT]) {
+      position -= right * speed * (float)delta_time;
+    }
+    if (keyboardState[SDL_SCANCODE_UP]) {
+      position += up * speed * (float)delta_time;
+    }
+    if (keyboardState[SDL_SCANCODE_DOWN]) {
+      position -= up * speed * (float)delta_time;
+    }
 
     if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) {
       SDL_Delay(10);
@@ -314,9 +427,11 @@ void GuiHandler::start_main_loop() {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    draw_control_window(&angle_x, &angle_y);
+    draw_control_window(&vertical_angle, &horizontal_angle);
 
     draw_shape(buffer_ids.first, buffer_ids.second, program_id, 12);
+
+    auto mvp = get_view_matrix();
     glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
 
     ImGui::Render();
