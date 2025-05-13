@@ -1,5 +1,10 @@
 {
-    "C_Cpp.clang_format_style": "Google",
-    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
-    "editor.formatOnSave": true
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "clangd.arguments": [
+    "--clang-tidy"
+  ],
+  "C_Cpp.default.compilerPath": "/usr/bin/clang++", // or your actual compiler
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  }
 }

@@ -1,28 +1,20 @@
 #include "gui_handler.hpp"
-
 #include <OpenGL/gl3.h>
 #include <OpenGL/glu.h>
 #include <imgui_impl_opengl3_loader.h>
-#include <stdio.h>
 
 #include <array>
 #include <cmath>
-#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <span>
-#include <vector>
 
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl2.h"
 #include "load_shader.hpp"
-#if defined(IMGUI_IMPL_OPENGL_ES2)
-#include <SDL_opengles2.h>
-#else
 #include <SDL_opengl.h>
-#endif
 
 GuiHandler::GuiHandler() : camera(Camera{}) {}
 
@@ -33,22 +25,6 @@ bool GuiHandler::init() {
     return false;
   }
 
-  // Decide GL+GLSL versions
-#if defined(IMGUI_IMPL_OPENGL_ES2)
-  // GL ES 2.0 + GLSL 100 (WebGL 1.0)
-  const char* glsl_version = "#version 100";
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#elif defined(IMGUI_IMPL_OPENGL_ES3)
-  // GL ES 3.0 + GLSL 300 es (WebGL 2.0)
-  const char* glsl_version = "#version 300 es";
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#elif defined(__APPLE__)
   // GL 3.2 Core + GLSL 150
   const char* glsl_version = "#version 150";
   SDL_GL_SetAttribute(
@@ -57,14 +33,6 @@ bool GuiHandler::init() {
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-#else
-  // GL 3.0 + GLSL 130
-  const char* glsl_version = "#version 130";
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#endif
 
   // From 2.0.18: Enable native IME.
 #ifdef SDL_HINT_IME_SHOW_UI
@@ -75,11 +43,11 @@ bool GuiHandler::init() {
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-  SDL_WindowFlags window_flags =
-      (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
-                        SDL_WINDOW_ALLOW_HIGHDPI);
+  constexpr auto window_flags =
+      static_cast<SDL_WindowFlags>(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
+                                   SDL_WINDOW_ALLOW_HIGHDPI);
 
-  window = SDL_CreateWindow("Dear ImGui SDL2+OpenGL3 example",
+  window = SDL_CreateWindow("Mag3D",
                             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                             window_width, window_height, window_flags);
   if (window == nullptr) {
@@ -126,8 +94,7 @@ void draw_control_window(float* angle_x, float* angle_y) {
   ImGui::End();
 }
 
-void GuiHandler::shutdown() {
-  // Cleanup
+void GuiHandler::shutdown() const {
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL2_Shutdown();
   ImGui::DestroyContext();
@@ -137,7 +104,7 @@ void GuiHandler::shutdown() {
   SDL_Quit();
 }
 
-void GuiHandler::handle_events(SDL_Event* event) {
+void GuiHandler::handle_events(const SDL_Event* event) {
   if (event->type == SDL_MOUSEWHEEL) {
     camera.update_field_of_view(event->wheel.y);
   }
@@ -157,7 +124,7 @@ void GuiHandler::handle_events(SDL_Event* event) {
 
   if (event->type == SDL_MOUSEMOTION && dragging) {
     camera.update_camera_directions(event->motion.xrel, event->motion.yrel,
-                                    (float)delta_time);
+                                    static_cast<float>(delta_time));
   }
 }
 
@@ -236,40 +203,40 @@ std::pair<GLuint, GLuint> init_cube() {
   return init_shape(g_vertex_buffer_data, g_color_buffer_data);
 }
 
-void draw_shape(GLuint vertexbuffer, GLuint colorbuffer, GLuint programId,
-                size_t number_of_triangles) {
+void draw_shape(GLuint vertex_buffer, GLuint color_buffer, GLuint program_id,
+                const size_t number_of_triangles) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glUseProgram(programId);
+  glUseProgram(program_id);
 
   // 1st attribute buffer : vertices
   glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
   glVertexAttribPointer(0,  // attribute 0. No particular reason for 0, but
                             // must match the layout in the shader.
                         3,  // size
                         GL_FLOAT,  // type
                         GL_FALSE,  // normalized?
                         0,         // stride
-                        (void*)0   // array buffer offset
+                        nullptr
   );
 
   // 2nd attribute buffer : colors
   glEnableVertexAttribArray(1);
-  glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, color_buffer);
   glVertexAttribPointer(1,         // attribute. No particular reason for 1, but
                                    // must match the layout in the shader.
                         3,         // size
                         GL_FLOAT,  // type
                         GL_FALSE,  // normalized?
                         0,         // stride
-                        (void*)0   // array buffer offset
+                        nullptr
   );
 
   // Draw the triangles !
   glDrawArrays(
       GL_TRIANGLES, 0,
       number_of_triangles *
-          3);  // Starting from vertex 0; 3 vertices total -> 1 triangle
+          3); // 3 vertices per triangle 
   glDisableVertexAttribArray(0);
 }
 
@@ -289,15 +256,15 @@ void GuiHandler::start_main_loop() {
     last_time = now_time;
     now_time = SDL_GetPerformanceCounter();
     delta_time =
-        ((now_time - last_time) * 1000 / (double)SDL_GetPerformanceFrequency());
+        ((now_time - last_time) * 1000 / static_cast<double>(SDL_GetPerformanceFrequency()));
 
     while (SDL_PollEvent(&event)) {
       ImGui_ImplSDL2_ProcessEvent(&event);
       handle_events(&event);
     }
 
-    const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
-    camera.update_camera_position(keyboardState, delta_time);
+    const Uint8* keyboardState = SDL_GetKeyboardState(nullptr);
+    camera.update_camera_position(keyboardState, static_cast<float>(delta_time));
 
     if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) {
       SDL_Delay(10);

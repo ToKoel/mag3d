@@ -8,10 +8,9 @@
 #include "imgui.h"
 
 class GuiHandler {
- private:
-  SDL_Window* window = nullptr;
-  ImGuiIO* io = nullptr;
-  SDL_GLContext gl_context;
+  SDL_Window *window = nullptr;
+  ImGuiIO *io = nullptr;
+  SDL_GLContext gl_context = nullptr;
   Camera camera;
 
   ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -20,9 +19,8 @@ class GuiHandler {
   uint32_t window_width{1028};
   uint32_t window_height{768};
 
-  void shutdown();
-  void handle_events(SDL_Event*);
-  glm::mat4 get_view_matrix();
+  void shutdown() const;
+  void handle_events(const SDL_Event *);
 
   uint64_t last_time{0};
   uint64_t now_time{0};
@@ -30,7 +28,7 @@ class GuiHandler {
 
   bool dragging{false};
 
- public:
+public:
   GuiHandler();
   bool init();
   void start_main_loop();

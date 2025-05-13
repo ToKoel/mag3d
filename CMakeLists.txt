@@ -1,7 +1,27 @@
-cmake_minimum_required(VERSION 3.16)
-project(magneticVis)
+cmake_minimum_required(VERSION 3.16...3.23)
 
+# ========= General Settings =====================
 set(CMAKE_CXX_STANDARD 20)
+
+# avoiding conflicts between -Wpedantic and -std=c++20 and -std=gnu++20
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(ENABLE_DEVELOPER_MODE
+    TRUE
+    CACHE BOOL "Enable 'developer mode'")
+
+# Change this to false if you want to disable warnings_as_errors in developer mode
+set(OPT_WARNINGS_AS_ERRORS_DEVELOPER_DEFAULT TRUE)
+
+# ================================================
+
+
+project(
+  magneticVis
+  VERSION 0.0.1
+  DESCRIPTION ""
+  LANGUAGES CXX C
+  )
 
 include(FetchContent)
 
