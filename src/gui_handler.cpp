@@ -158,13 +158,15 @@ struct Shape {
   GLuint vertex_buffer_id;
 };
 
-Shape init_cube() {
-  ObjShape shape = FileLoader::load_obj_file("/Users/tobiaskohler/Documents/projects/magnetic/src/obj_files/cube.obj");
+Shape init_shape(const std::string& file_name) {
+  const ObjShape shape = FileLoader::load_obj_file(file_name);
   std::vector<glm::vec3> g_vertex_buffer_data =shape.vertices;
   return {shape.vertices.size(), init_shape(g_vertex_buffer_data)};
 }
 
 void draw_shape(const Shape shape, const GLuint program_id) {
+  GLint colorLoc = glGetUniformLocation(program_id, "objectColor");
+  glUniform3f(colorLoc, 1.0f, 0.0f, 0.0f); // Red
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glUseProgram(program_id);
 
@@ -189,7 +191,7 @@ void draw_shape(const Shape shape, const GLuint program_id) {
 }
 
 void GuiHandler::start_main_loop() {
-  const auto shape = init_cube();
+  const auto shape = init_shape("/Users/tobiaskohler/Documents/projects/magnetic/src/obj_files/arrow.obj");
   GLuint program_id = load_shaders(
       "/Users/tobiaskohler/Documents/projects/magnetic/src/shaders/"
       "triangle.vert",
@@ -226,8 +228,6 @@ void GuiHandler::start_main_loop() {
 
     draw_control_window(&camera.vertical_angle, &camera.horizontal_angle);
 
-    GLint colorLoc = glGetUniformLocation(program_id, "objectColor");
-    glUniform3f(colorLoc, 1.0f, 0.0f, 0.0f); // Red
     draw_shape(shape, program_id);
 
     auto mvp = camera.get_view_matrix(window_width, window_height);
