@@ -22,7 +22,10 @@ class Camera {
 
  public:
   void update_camera_directions(float, float, float);
-  [[nodiscard]] glm::mat4 get_view_matrix(float, float) const;
+  [[nodiscard]] glm::mat4 get_mvp_matrix(float, float) const;
+    [[nodiscard]] glm::mat4 get_view_matrix() const;
+    [[nodiscard]] glm::mat4 get_projection_matrix(float, float) const;
+    [[nodiscard]] static glm::mat4 get_model_matrix() ;
   void update_field_of_view(bool);
   void update_field_of_view(Sint32);
   void update_camera_position(SDL_KeyCode, float);

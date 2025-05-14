@@ -130,7 +130,8 @@ void GuiHandler::handle_events(const SDL_Event* event) {
   }
 }
 
-GLuint init_shape(std::span<glm::vec3> vertex_buffer_data) {
+std::pair<GLuint, GLuint> init_shape(std::span<glm::vec3> vertex_buffer_data,
+  std::span<glm::vec3> normal_buffer_data) {
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
   // Accept fragment if it closer to the camera than the former one
@@ -150,25 +151,35 @@ GLuint init_shape(std::span<glm::vec3> vertex_buffer_data) {
   glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertex_buffer_data.size(),
                vertex_buffer_data.data(), GL_STATIC_DRAW);
 
-  return vertexbuffer;
+  GLuint normalbuffer;
+  glGenBuffers(1, &normalbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+  glBufferData(GL_ARRAY_BUFFER, normal_buffer_data.size() * sizeof(glm::vec3),
+               normal_buffer_data.data(), GL_STATIC_DRAW);
+
+  return {vertexbuffer, normalbuffer};
 }
 
 struct Shape {
   std::size_t number_of_triangles;
   GLuint vertex_buffer_id;
+  GLuint normal_buffer_id;
 };
 
-Shape init_shape(const std::string& file_name) {
+Shape get_shape(const std::string& file_name) {
   const ObjShape shape = FileLoader::load_obj_file(file_name);
   std::vector<glm::vec3> g_vertex_buffer_data =shape.vertices;
-  return {shape.vertices.size(), init_shape(g_vertex_buffer_data)};
+  std::vector<glm::vec3> g_normal_buffer_data =shape.normals;
+  auto [vertex_buffer_id, normal_buffer_id] = init_shape(g_vertex_buffer_data, g_normal_buffer_data);
+  return {shape.vertices.size(), vertex_buffer_id, normal_buffer_id};
 }
 
 void draw_shape(const Shape shape, const GLuint program_id) {
-  GLint colorLoc = glGetUniformLocation(program_id, "objectColor");
-  glUniform3f(colorLoc, 1.0f, 0.0f, 0.0f); // Red
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glUseProgram(program_id);
+
+  GLint colorLoc = glGetUniformLocation(program_id, "objectColor");
+  glUniform3f(colorLoc, 1.0f, 0.0f, 0.0f); // Red
 
   // 1st attribute buffer : vertices
   glEnableVertexAttribArray(0);
@@ -182,16 +193,21 @@ void draw_shape(const Shape shape, const GLuint program_id) {
                         nullptr
   );
 
+  glEnableVertexAttribArray(1);
+  glBindBuffer(GL_ARRAY_BUFFER, shape.normal_buffer_id);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
   // Draw the triangles !
   glDrawArrays(
       GL_TRIANGLES, 0,
       shape.number_of_triangles *
           3); // 3 vertices per triangle 
   glDisableVertexAttribArray(0);
+  glDisableVertexAttribArray(1);
 }
 
 void GuiHandler::start_main_loop() {
-  const auto shape = init_shape("/Users/tobiaskohler/Documents/projects/magnetic/src/obj_files/arrow.obj");
+  const auto shape = get_shape("/Users/tobiaskohler/Documents/projects/magnetic/src/obj_files/arrow.obj");
   GLuint program_id = load_shaders(
       "/Users/tobiaskohler/Documents/projects/magnetic/src/shaders/"
       "triangle.vert",
@@ -228,10 +244,17 @@ void GuiHandler::start_main_loop() {
 
     draw_control_window(&camera.vertical_angle, &camera.horizontal_angle);
 
-    draw_shape(shape, program_id);
+    glUniform3f(glGetUniformLocation(program_id, "objectColor"), 1.0f, 0.0f, 0.0f);
+    glUniform3f(glGetUniformLocation(program_id, "lightColor"), 1.0f, 1.0f, 1.0f);
+    glUniform3f(glGetUniformLocation(program_id, "lightPos"), 4.0f, 4.0f, 4.0f);
 
-    auto mvp = camera.get_view_matrix(window_width, window_height);
-    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
+    auto mvp = camera.get_mvp_matrix(window_width, window_height);
+    auto view = camera.get_view_matrix();
+    auto model = Camera::get_model_matrix();
+    glUniformMatrix4fv(glGetUniformLocation(program_id, "MVP"), 1, GL_FALSE, &mvp[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(program_id, "V"),   1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(program_id, "M"),   1, GL_FALSE, &model[0][0]);
+    draw_shape(shape, program_id);
 
     ImGui::Render();
 
