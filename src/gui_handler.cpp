@@ -82,8 +82,11 @@ void GuiHandler::init() {
   glEnable(GL_CULL_FACE);
 }
 
-void GuiHandler::draw_control_window() {
+void GuiHandler::draw_control_window(glm::vec3 *rotation) {
   ImGui::Begin("Control");
+  ImGui::SliderFloat("Rotate X", &rotation->x, -180.0f, 180.0f);
+  ImGui::SliderFloat("Rotate Y", &rotation->y, -180.0f, 180.0f);
+  ImGui::SliderFloat("Rotate Z", &rotation->z, -180.0f, 180.0f);
   ImGui::DragFloat3("Light Position", glm::value_ptr(light_position), 0.1f);
   ImGui::End();
 }
@@ -126,52 +129,6 @@ void GuiHandler::handle_events(const SDL_Event *event) {
   }
 }
 
-std::pair<GLuint, GLuint>
-init_shape(const std::span<glm::vec3> vertex_buffer_data,
-           const std::span<glm::vec3> normal_buffer_data) {
-  glEnable(GL_DEPTH_TEST);
-  // Accept fragment if it closer to the camera than the former one
-  glDepthFunc(GL_LESS);
-
-  GLuint vertex_array_id;
-  glGenVertexArrays(1, &vertex_array_id);
-  glBindVertexArray(vertex_array_id);
-
-  GLuint vertex_buffer_id;
-  glGenBuffers(1, &vertex_buffer_id);
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
-  glBufferData(
-      GL_ARRAY_BUFFER,
-      static_cast<GLsizeiptr>(sizeof(glm::vec3) * vertex_buffer_data.size()),
-      vertex_buffer_data.data(), GL_STATIC_DRAW);
-
-  GLuint normal_buffer_id;
-  glGenBuffers(1, &normal_buffer_id);
-  glBindBuffer(GL_ARRAY_BUFFER, normal_buffer_id);
-  glBufferData(
-      GL_ARRAY_BUFFER,
-      static_cast<GLsizeiptr>(sizeof(glm::vec3) * normal_buffer_data.size()),
-      normal_buffer_data.data(), GL_STATIC_DRAW);
-
-  return {vertex_buffer_id, normal_buffer_id};
-}
-
-struct Shape {
-  GLsizei number_of_triangles;
-  GLuint vertex_buffer_id;
-  GLuint normal_buffer_id;
-};
-
-Shape get_shape(const std::string &file_name) {
-  const ObjShape shape = FileLoader::load_obj_file(file_name);
-  std::vector<glm::vec3> g_vertex_buffer_data = shape.vertices;
-  std::vector<glm::vec3> g_normal_buffer_data = shape.normals;
-  auto [vertex_buffer_id, normal_buffer_id] =
-      init_shape(g_vertex_buffer_data, g_normal_buffer_data);
-  return {static_cast<GLsizei>(shape.vertices.size()), vertex_buffer_id,
-          normal_buffer_id};
-}
-
 void draw_shape(const Shape shape, const GLuint program_id) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glUseProgram(program_id);
@@ -202,8 +159,9 @@ void draw_shape(const Shape shape, const GLuint program_id) {
 }
 
 void GuiHandler::start_main_loop() {
-  const auto shape = get_shape("/Users/tobiaskohler/Documents/projects/"
-                               "magnetic/src/obj_files/arrow.obj");
+  const auto shape =
+      FileLoader::get_shape("/Users/tobiaskohler/Documents/projects/"
+                            "magnetic/src/obj_files/arrow.obj");
   GLuint program_id = load_shaders(
       "/Users/tobiaskohler/Documents/projects/magnetic/src/shaders/"
       "triangle.vert",
@@ -211,6 +169,8 @@ void GuiHandler::start_main_loop() {
       "triangle.frag");
 
   SDL_Event event;
+
+  glm::vec3 model_rotation = glm::vec3(0.0f); // x, y, z rotation in degrees
 
   while (!done) {
     last_time = now_time;
@@ -237,7 +197,7 @@ void GuiHandler::start_main_loop() {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    draw_control_window();
+    draw_control_window(&model_rotation);
 
     glUniform3f(glGetUniformLocation(program_id, "objectColor"), 1.0f, 0.0f,
                 0.0f);
@@ -246,10 +206,17 @@ void GuiHandler::start_main_loop() {
     glUniform3fv(glGetUniformLocation(program_id, "lightPos"), 1,
                  glm::value_ptr(light_position));
 
+    auto model = glm::mat4(1.0f);
+    model =
+        glm::rotate(model, glm::radians(model_rotation.x), glm::vec3(1, 0, 0));
+    model =
+        glm::rotate(model, glm::radians(model_rotation.y), glm::vec3(0, 1, 0));
+    model =
+        glm::rotate(model, glm::radians(model_rotation.z), glm::vec3(0, 0, 1));
+
     auto mvp = camera.get_mvp_matrix(static_cast<float>(window_width),
-                                     static_cast<float>(window_height));
+                                     static_cast<float>(window_height), model);
     auto view = camera.get_view_matrix();
-    auto model = Camera::get_model_matrix();
     glUniformMatrix4fv(glGetUniformLocation(program_id, "MVP"), 1, GL_FALSE,
                        &mvp[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(program_id, "V"), 1, GL_FALSE,

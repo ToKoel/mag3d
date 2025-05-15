@@ -17,19 +17,18 @@ class Camera {
   int x_mouse = 0;
   int y_mouse = 0;
 
-  float speed = 0.005f;  // 3 units / second
+  float speed = 0.005f; // 3 units / second
   float mouse_speed = 0.0005f;
 
- public:
+public:
   void update_camera_directions(float, float, float);
-  [[nodiscard]] glm::mat4 get_mvp_matrix(float, float) const;
-    [[nodiscard]] glm::mat4 get_view_matrix() const;
-    [[nodiscard]] glm::mat4 get_projection_matrix(float, float) const;
-    [[nodiscard]] static glm::mat4 get_model_matrix() ;
+  [[nodiscard]] glm::mat4 get_mvp_matrix(float, float, glm::mat4) const;
+  [[nodiscard]] glm::mat4 get_view_matrix() const;
+  [[nodiscard]] glm::mat4 get_projection_matrix(float, float) const;
   void update_field_of_view(bool);
   void update_field_of_view(Sint32);
   void update_camera_position(SDL_KeyCode, float);
-  void update_camera_position(const Uint8*, float);
+  void update_camera_position(const Uint8 *, float);
 
   float horizontal_angle = 3.14f;
   float vertical_angle = 0.0f;

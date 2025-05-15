@@ -4,7 +4,7 @@
 
 #include "FileLoader.h"
 
-ObjShape FileLoader::load_obj_file(const std::string& path) {
+ObjShape FileLoader::load_obj_file(const std::string &path) {
   printf("Loading OBJ file %s...\n", path.c_str());
 
   std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
@@ -94,4 +94,44 @@ ObjShape FileLoader::load_obj_file(const std::string& path) {
   }
   fclose(file);
   return {vertices, normals, uvs};
+}
+
+std::pair<GLuint, GLuint>
+FileLoader::init_shape(const std::span<glm::vec3> vertex_buffer_data,
+                       const std::span<glm::vec3> normal_buffer_data) {
+  glEnable(GL_DEPTH_TEST);
+  // Accept fragment if it closer to the camera than the former one
+  glDepthFunc(GL_LESS);
+
+  GLuint vertex_array_id;
+  glGenVertexArrays(1, &vertex_array_id);
+  glBindVertexArray(vertex_array_id);
+
+  GLuint vertex_buffer_id;
+  glGenBuffers(1, &vertex_buffer_id);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
+  glBufferData(
+      GL_ARRAY_BUFFER,
+      static_cast<GLsizeiptr>(sizeof(glm::vec3) * vertex_buffer_data.size()),
+      vertex_buffer_data.data(), GL_STATIC_DRAW);
+
+  GLuint normal_buffer_id;
+  glGenBuffers(1, &normal_buffer_id);
+  glBindBuffer(GL_ARRAY_BUFFER, normal_buffer_id);
+  glBufferData(
+      GL_ARRAY_BUFFER,
+      static_cast<GLsizeiptr>(sizeof(glm::vec3) * normal_buffer_data.size()),
+      normal_buffer_data.data(), GL_STATIC_DRAW);
+
+  return {vertex_buffer_id, normal_buffer_id};
+}
+
+Shape FileLoader::get_shape(const std::string &file_name) {
+  const ObjShape shape = FileLoader::load_obj_file(file_name);
+  std::vector<glm::vec3> g_vertex_buffer_data = shape.vertices;
+  std::vector<glm::vec3> g_normal_buffer_data = shape.normals;
+  auto [vertex_buffer_id, normal_buffer_id] =
+      init_shape(g_vertex_buffer_data, g_normal_buffer_data);
+  return {static_cast<GLsizei>(shape.vertices.size()), vertex_buffer_id,
+          normal_buffer_id};
 }

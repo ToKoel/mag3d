@@ -25,7 +25,7 @@ class GuiHandler {
 
   void shutdown() const;
   void handle_events(const SDL_Event *);
-  void draw_control_window();
+  void draw_control_window(glm::vec3*);
 
 public:
   void init();
