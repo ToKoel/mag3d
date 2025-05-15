@@ -201,13 +201,10 @@ return rotation;
 
 void GuiHandler::start_main_loop() {
   const auto shape =
-      FileLoader::get_shape("/Users/tobiaskohler/Documents/projects/"
-                            "magnetic/src/obj_files/arrow.obj");
+      FileLoader::get_shape("../src/obj_files/arrow.obj");
   GLuint program_id = load_shaders(
-      "/Users/tobiaskohler/Documents/projects/magnetic/src/shaders/"
-      "triangle.vert",
-      "/Users/tobiaskohler/Documents/projects/magnetic/src/shaders/"
-      "triangle.frag");
+      "../src/shaders/triangle.vert",
+      "../src/shaders/triangle.frag");
 
   SDL_Event event;
 
