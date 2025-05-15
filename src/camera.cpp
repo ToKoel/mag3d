@@ -30,14 +30,35 @@ void Camera::update_camera_directions(const float deltaX, const float deltaY,
   if (vertical_angle > 89.0f) vertical_angle = 89.0f;
   if (vertical_angle < -89.0f) vertical_angle = -89.0f;
 
-  direction = glm::vec3(cos(vertical_angle) * sin(horizontal_angle),
-                        sin(vertical_angle),
-                        cos(vertical_angle) * cos(horizontal_angle));
 
-  right = glm::vec3(sin(horizontal_angle - 3.14f / 2.0f), 0,
-                    cos(horizontal_angle - 3.14f / 2.0f));
+  // Spherical to Cartesian conversion for camera position
+  float theta = glm::radians(horizontal_angle);
+  float phi = glm::radians(vertical_angle);
 
-  up = glm::cross(right, direction);
+  auto target = glm::vec3(0.0f);
+  auto radius = 5.0f;
+
+  position = target + glm::vec3(
+      radius * cos(phi) * sin(theta),
+      radius * sin(phi),
+      radius * cos(phi) * cos(theta)
+  );
+
+  // New direction vector from camera to target
+  direction = glm::normalize(target - position);
+
+  // Right and Up vectors for view matrix
+  right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), direction));
+  up = glm::normalize(glm::cross(direction, right));
+
+  // direction = glm::vec3(cos(vertical_angle) * sin(horizontal_angle),
+  //                       sin(vertical_angle),
+  //                       cos(vertical_angle) * cos(horizontal_angle));
+  //
+  // right = glm::vec3(sin(horizontal_angle - 3.14f / 2.0f), 0,
+  //                   cos(horizontal_angle - 3.14f / 2.0f));
+  //
+  // up = glm::cross(right, direction);
 }
 
 void Camera::update_camera_position(const SDL_KeyCode direction, const float delta_time) {
@@ -62,10 +83,10 @@ void Camera::update_camera_position(const SDL_KeyCode direction, const float del
 void Camera::update_camera_position(const Uint8* keyboardState,
                                     const float delta_time) {
   if (keyboardState[SDL_SCANCODE_RIGHT]) {
-    position += right * speed * delta_time;
+    position -= right * speed * delta_time;
   }
   if (keyboardState[SDL_SCANCODE_LEFT]) {
-    position -= right * speed * delta_time;
+    position += right * speed * delta_time;
   }
   if (keyboardState[SDL_SCANCODE_UP]) {
     position += up * speed * delta_time;

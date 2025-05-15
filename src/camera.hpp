@@ -18,7 +18,7 @@ class Camera {
   int y_mouse = 0;
 
   float speed = 0.005f; // 3 units / second
-  float mouse_speed = 0.0005f;
+  float mouse_speed = 0.01f;
 
 public:
   void update_camera_directions(float, float, float);
