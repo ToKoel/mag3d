@@ -263,8 +263,8 @@ void GuiHandler::start_main_loop() {
       model = model * get_rotation_matrix(direction);
       model = glm::scale(model, glm::vec3(0.05f));
 
-      auto mvp = camera.get_mvp_matrix(static_cast<float>(window_width),
-                                       static_cast<float>(window_height), model);
+      auto mvp = camera.get_vp_matrix(static_cast<float>(window_width),
+                                       static_cast<float>(window_height)) * model;
       auto view = camera.get_view_matrix();
       glUniformMatrix4fv(glGetUniformLocation(program_id, "MVP"), 1, GL_FALSE,
                          &mvp[0][0]);

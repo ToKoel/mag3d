@@ -4,13 +4,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-glm::mat4 Camera::get_mvp_matrix(const float window_width, const float window_height, glm::mat4 model_matrix) const {
+glm::mat4 Camera::get_vp_matrix(const float window_width, const float window_height) const {
   const glm::mat4 projection = get_projection_matrix(window_width, window_height);
-
-  // Camera matrix
   const glm::mat4 view = get_view_matrix();
 
-  return projection * view * model_matrix;
+  return projection * view;
 }
 
 glm::mat4 Camera::get_view_matrix() const {
