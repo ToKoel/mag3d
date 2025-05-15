@@ -47,14 +47,17 @@ void GuiHandler::init() {
 
   window =
       SDL_CreateWindow("Mag3D", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                       static_cast<std::int32_t>(window_width), static_cast<std::int32_t>(window_height), window_flags);
+                       static_cast<std::int32_t>(window_width),
+                       static_cast<std::int32_t>(window_height), window_flags);
   if (window == nullptr) {
-    throw std::runtime_error("SDL_CreateWindow failed: " + std::string(SDL_GetError()));
+    throw std::runtime_error("SDL_CreateWindow failed: " +
+                             std::string(SDL_GetError()));
   }
 
   gl_context = SDL_GL_CreateContext(window);
   if (gl_context == nullptr) {
-    throw std::runtime_error("SDL_GL_CreateContext failed: " + std::string(SDL_GetError()));
+    throw std::runtime_error("SDL_GL_CreateContext failed: " +
+                             std::string(SDL_GetError()));
   }
 
   SDL_GL_MakeCurrent(window, gl_context);
@@ -123,8 +126,9 @@ void GuiHandler::handle_events(const SDL_Event *event) {
   }
 }
 
-std::pair<GLuint, GLuint> init_shape(const std::span<glm::vec3> vertex_buffer_data,
-                                    const std::span<glm::vec3> normal_buffer_data) {
+std::pair<GLuint, GLuint>
+init_shape(const std::span<glm::vec3> vertex_buffer_data,
+           const std::span<glm::vec3> normal_buffer_data) {
   glEnable(GL_DEPTH_TEST);
   // Accept fragment if it closer to the camera than the former one
   glDepthFunc(GL_LESS);
@@ -136,14 +140,18 @@ std::pair<GLuint, GLuint> init_shape(const std::span<glm::vec3> vertex_buffer_da
   GLuint vertex_buffer_id;
   glGenBuffers(1, &vertex_buffer_id);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
-  glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vertex_buffer_data.size()),
-               vertex_buffer_data.data(), GL_STATIC_DRAW);
+  glBufferData(
+      GL_ARRAY_BUFFER,
+      static_cast<GLsizeiptr>(sizeof(glm::vec3) * vertex_buffer_data.size()),
+      vertex_buffer_data.data(), GL_STATIC_DRAW);
 
   GLuint normal_buffer_id;
   glGenBuffers(1, &normal_buffer_id);
   glBindBuffer(GL_ARRAY_BUFFER, normal_buffer_id);
-  glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(glm::vec3) * normal_buffer_data.size()),
-               normal_buffer_data.data(), GL_STATIC_DRAW);
+  glBufferData(
+      GL_ARRAY_BUFFER,
+      static_cast<GLsizeiptr>(sizeof(glm::vec3) * normal_buffer_data.size()),
+      normal_buffer_data.data(), GL_STATIC_DRAW);
 
   return {vertex_buffer_id, normal_buffer_id};
 }
@@ -160,7 +168,8 @@ Shape get_shape(const std::string &file_name) {
   std::vector<glm::vec3> g_normal_buffer_data = shape.normals;
   auto [vertex_buffer_id, normal_buffer_id] =
       init_shape(g_vertex_buffer_data, g_normal_buffer_data);
-  return {static_cast<GLsizei>(shape.vertices.size()), vertex_buffer_id, normal_buffer_id};
+  return {static_cast<GLsizei>(shape.vertices.size()), vertex_buffer_id,
+          normal_buffer_id};
 }
 
 void draw_shape(const Shape shape, const GLuint program_id) {
@@ -207,7 +216,7 @@ void GuiHandler::start_main_loop() {
     last_time = now_time;
     now_time = SDL_GetPerformanceCounter();
     delta_time = static_cast<double>((now_time - last_time) * 1000) /
-                  static_cast<double>(SDL_GetPerformanceFrequency());
+                 static_cast<double>(SDL_GetPerformanceFrequency());
 
     while (SDL_PollEvent(&event)) {
       ImGui_ImplSDL2_ProcessEvent(&event);
@@ -238,7 +247,7 @@ void GuiHandler::start_main_loop() {
                  glm::value_ptr(light_position));
 
     auto mvp = camera.get_mvp_matrix(static_cast<float>(window_width),
-                                          static_cast<float>(window_height));
+                                     static_cast<float>(window_height));
     auto view = camera.get_view_matrix();
     auto model = Camera::get_model_matrix();
     glUniformMatrix4fv(glGetUniformLocation(program_id, "MVP"), 1, GL_FALSE,
