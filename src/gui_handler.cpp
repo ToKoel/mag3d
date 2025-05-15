@@ -82,11 +82,14 @@ void GuiHandler::init() {
   glEnable(GL_CULL_FACE);
 }
 
-void GuiHandler::draw_control_window(glm::vec3 *rotation) {
+void GuiHandler::draw_control_window(glm::vec3 *rotation, glm::vec3 *field_direction) {
   ImGui::Begin("Control");
-  ImGui::SliderFloat("Rotate X", &rotation->x, -180.0f, 180.0f);
-  ImGui::SliderFloat("Rotate Y", &rotation->y, -180.0f, 180.0f);
-  ImGui::SliderFloat("Rotate Z", &rotation->z, -180.0f, 180.0f);
+  ImGui::SliderFloat("Rotate X", &rotation->x, -1.0f, 1.0f);
+  ImGui::SliderFloat("Rotate Y", &rotation->y, -1.0f, 1.0f);
+  ImGui::SliderFloat("Rotate Z", &rotation->z, -1.0f, 1.0f);
+  ImGui::SliderFloat("Rotate Field X", &field_direction->x, -1.0f, 1.0f);
+  ImGui::SliderFloat("Rotate Field Y", &field_direction->y, -1.0f, 1.0f);
+  ImGui::SliderFloat("Rotate Field Z", &field_direction->z, -1.0f, 1.0f);
   ImGui::DragFloat3("Light Position", glm::value_ptr(light_position), 0.1f);
   ImGui::End();
 }
@@ -130,11 +133,7 @@ void GuiHandler::handle_events(const SDL_Event *event) {
 }
 
 void draw_shape(const Shape shape, const GLuint program_id) {
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glUseProgram(program_id);
 
-  const GLint color = glGetUniformLocation(program_id, "objectColor");
-  glUniform3f(color, 1.0f, 0.0f, 0.0f); // Red
 
   // 1st attribute buffer : vertices
   glEnableVertexAttribArray(0);
@@ -157,6 +156,48 @@ void draw_shape(const Shape shape, const GLuint program_id) {
   glDisableVertexAttribArray(0);
   glDisableVertexAttribArray(1);
 }
+struct MagneticMoment {
+  glm::vec3 position;
+  glm::vec3 direction; // will change over time to align with the field
+};
+
+glm::vec3 magnetic_field_direction{1.0f, 0.0f, 0.0f}; // user-controlled
+float magnetic_field_strength = 1.0f; // user-controlled
+
+std::vector<MagneticMoment> moments;
+
+void init_moments() {
+  for (int x = -5; x <= 5; ++x) {
+    for (int y = -5; y <= 5; ++y) {
+      moments.push_back({glm::vec3(x/2.0, y/2.0, 0), glm::vec3(0, 0, 1)});
+    }
+  }
+}
+
+glm::mat4 get_rotation_matrix(glm::vec3 direction) {
+  glm::vec3 default_dir = glm::vec3(0.0f, 0.0f, 1.0f); // your model's default orientation
+  glm::vec3 target_dir = glm::normalize(direction); // direction you want to rotate to
+
+  // Compute rotation axis and angle
+  glm::vec3 axis = glm::cross(default_dir, target_dir);
+  float angle = acos(glm::clamp(glm::dot(default_dir, target_dir), -1.0f, 1.0f));
+
+  // Handle the case when vectors are aligned or opposite
+  glm::mat4 rotation;
+  if (glm::length(axis) < 1e-6f) {
+    if (glm::dot(default_dir, target_dir) > 0.0f) {
+      // No rotation needed
+      rotation = glm::mat4(1.0f);
+    } else {
+      // Rotate 180° around any perpendicular axis (e.g. X)
+      rotation = glm::rotate(glm::mat4(1.0f), glm::pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
+    }
+  } else {
+    axis = glm::normalize(axis);
+    rotation = glm::rotate(glm::mat4(1.0f), angle, axis);
+  }
+return rotation;
+}
 
 void GuiHandler::start_main_loop() {
   const auto shape =
@@ -170,9 +211,14 @@ void GuiHandler::start_main_loop() {
 
   SDL_Event event;
 
-  glm::vec3 model_rotation = glm::vec3(0.0f); // x, y, z rotation in degrees
+  auto model_rotation = glm::vec3(0.0f); // x, y, z rotation in degrees
+  auto field_direction = glm::vec3(1.0f, 0.0f, 0.0f);
+
+  init_moments();
+  glUseProgram(program_id);
 
   while (!done) {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     last_time = now_time;
     now_time = SDL_GetPerformanceCounter();
     delta_time = static_cast<double>((now_time - last_time) * 1000) /
@@ -197,7 +243,7 @@ void GuiHandler::start_main_loop() {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    draw_control_window(&model_rotation);
+    draw_control_window(&model_rotation, &field_direction);
 
     glUniform3f(glGetUniformLocation(program_id, "objectColor"), 1.0f, 0.0f,
                 0.0f);
@@ -206,24 +252,31 @@ void GuiHandler::start_main_loop() {
     glUniform3fv(glGetUniformLocation(program_id, "lightPos"), 1,
                  glm::value_ptr(light_position));
 
-    auto model = glm::mat4(1.0f);
-    model =
-        glm::rotate(model, glm::radians(model_rotation.x), glm::vec3(1, 0, 0));
-    model =
-        glm::rotate(model, glm::radians(model_rotation.y), glm::vec3(0, 1, 0));
-    model =
-        glm::rotate(model, glm::radians(model_rotation.z), glm::vec3(0, 0, 1));
+    for (auto&[position, direction] : moments) {
+      direction = model_rotation;
+      const GLint color = glGetUniformLocation(program_id, "objectColor");
+      float alignment = glm::dot(glm::normalize(direction), glm::normalize(field_direction)); // in [-1, 1]
+      glm::vec3 color_v;
+      color_v.r = glm::clamp(-alignment, 0.0f, 1.0f); // More red when anti-aligned
+      color_v.b = glm::clamp( alignment, 0.0f, 1.0f); // More blue when aligned
+      color_v.g = 1.0f - std::abs(alignment);         // Less green when aligned/anti-aligned
 
-    auto mvp = camera.get_mvp_matrix(static_cast<float>(window_width),
-                                     static_cast<float>(window_height), model);
-    auto view = camera.get_view_matrix();
-    glUniformMatrix4fv(glGetUniformLocation(program_id, "MVP"), 1, GL_FALSE,
-                       &mvp[0][0]);
-    glUniformMatrix4fv(glGetUniformLocation(program_id, "V"), 1, GL_FALSE,
-                       &view[0][0]);
-    glUniformMatrix4fv(glGetUniformLocation(program_id, "M"), 1, GL_FALSE,
-                       &model[0][0]);
-    draw_shape(shape, program_id);
+      glUniform3f(color, color_v.r, color_v.g, color_v.b);
+      auto model = glm::translate(glm::mat4(1.0f), position);
+      model = model * get_rotation_matrix(direction);
+      model = glm::scale(model, glm::vec3(0.05f));
+
+      auto mvp = camera.get_mvp_matrix(static_cast<float>(window_width),
+                                       static_cast<float>(window_height), model);
+      auto view = camera.get_view_matrix();
+      glUniformMatrix4fv(glGetUniformLocation(program_id, "MVP"), 1, GL_FALSE,
+                         &mvp[0][0]);
+      glUniformMatrix4fv(glGetUniformLocation(program_id, "V"), 1, GL_FALSE,
+                         &view[0][0]);
+      glUniformMatrix4fv(glGetUniformLocation(program_id, "M"), 1, GL_FALSE,
+                         &model[0][0]);
+      draw_shape(shape, program_id);
+    }
 
     ImGui::Render();
 
