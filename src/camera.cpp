@@ -11,12 +11,8 @@ glm::mat4 Camera::get_mvp_matrix(const float window_width, const float window_he
   const glm::mat4 view = get_view_matrix();
 
   // Model matrix: an identity matrix (model will be at the origin)
-  auto model = get_model_matrix();
-  const glm::mat4 mvp =
-      projection * view *
-      model;
-
-  return mvp;
+  const auto model = get_model_matrix();
+  return projection * view * model;
 }
 
 glm::mat4 Camera::get_model_matrix() {
