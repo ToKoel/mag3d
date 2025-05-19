@@ -1,6 +1,3 @@
-//
-// Created by Tobias Köhler on 14.05.25.
-//
 
 #pragma once
 #include <string>
@@ -11,10 +8,10 @@
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
 
-struct ObjShape {
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> uvs;
+struct ObjVertex {
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 uvs;
 };
 
 struct Shape {
@@ -27,7 +24,7 @@ class FileLoader {
     static std::pair<GLuint, GLuint> init_shape(std::span<glm::vec3> vertex_buffer_data,
                std::span<glm::vec3> normal_buffer_data);
         public:
-    static ObjShape load_obj_file(const std::string& path);
+    static std::vector<ObjVertex> load_obj_file(std::string_view path);
     static Shape get_shape(const std::string& path);
 
 };

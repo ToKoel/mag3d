@@ -252,7 +252,7 @@ void GuiHandler::start_main_loop() {
     for (auto&[position, direction] : moments) {
       direction = model_rotation;
       const GLint color = glGetUniformLocation(program_id, "objectColor");
-      float alignment = glm::dot(glm::normalize(direction), glm::normalize(field_direction)); // in [-1, 1]
+      const float alignment = glm::dot(glm::normalize(direction), glm::normalize(field_direction)); // in [-1, 1]
       glm::vec3 color_v;
       color_v.r = glm::clamp(-alignment, 0.0f, 1.0f); // More red when anti-aligned
       color_v.b = glm::clamp( alignment, 0.0f, 1.0f); // More blue when aligned
