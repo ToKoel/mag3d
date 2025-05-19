@@ -3,7 +3,9 @@
 #include <fstream>
 #include <iostream>
 #include <ostream>
+#include <ranges>
 #include <sstream>
+#include <unordered_set>
 
 std::vector<ObjVertex> FileLoader::load_obj_file(std::string_view path) {
   std::cout << "Loading obj file " << path << "\n";
@@ -17,8 +19,8 @@ std::vector<ObjVertex> FileLoader::load_obj_file(std::string_view path) {
   std::vector<glm::vec3> positions;
   std::vector<glm::vec3> normals;
   std::vector<glm::vec2> uvs;
+  std::unordered_set<size_t> vertices_hashes;
   std::vector<ObjVertex> vertices;
-
   std::string line;
   while (std::getline(file, line)) {
     std::istringstream ss(line);
@@ -61,7 +63,10 @@ std::vector<ObjVertex> FileLoader::load_obj_file(std::string_view path) {
         if (indices[2] > 0 && indices[2] <= normals.size())
           vertex.normal = normals.at(indices[2] - 1);
 
-        vertices.push_back(vertex);
+        if (!vertices_hashes.contains(indices[0])) {
+          vertices_hashes.insert(vertex.hash());
+          vertices.push_back(vertex);
+        }
       }
     }
   }
