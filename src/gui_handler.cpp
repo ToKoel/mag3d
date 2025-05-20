@@ -133,9 +133,8 @@ void GuiHandler::handle_events(const SDL_Event *event) {
 }
 
 void draw_shape(const Shape shape, const GLuint program_id) {
+  constexpr auto number_of_vertices_per_triangle = 3;
 
-
-  // 1st attribute buffer : vertices
   glEnableVertexAttribArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, shape.vertex_buffer_id);
   glVertexAttribPointer(0, // attribute 0. No particular reason for 0, but
@@ -150,12 +149,12 @@ void draw_shape(const Shape shape, const GLuint program_id) {
   glBindBuffer(GL_ARRAY_BUFFER, shape.normal_buffer_id);
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-  // Draw the triangles !
   glDrawArrays(GL_TRIANGLES, 0,
-               shape.number_of_triangles * 3); // 3 vertices per triangle
+               shape.number_of_triangles * number_of_vertices_per_triangle);
   glDisableVertexAttribArray(0);
   glDisableVertexAttribArray(1);
 }
+
 struct MagneticMoment {
   glm::vec3 position;
   glm::vec3 direction; // will change over time to align with the field
@@ -169,7 +168,9 @@ std::vector<MagneticMoment> moments;
 void init_moments() {
   for (int x = -5; x <= 5; ++x) {
     for (int y = -5; y <= 5; ++y) {
-      moments.push_back({glm::vec3(x/2.0, y/2.0, 0), glm::vec3(0, 0, 1)});
+      for (int z = -5; z <= 5; ++z) {
+        moments.push_back({glm::vec3(x/2.0, y/2.0, z/2.0), glm::vec3(0, 0, 1)});
+      }
     }
   }
 }
@@ -202,7 +203,7 @@ return rotation;
 void GuiHandler::start_main_loop() {
   const auto shape =
       FileLoader::get_shape("../src/obj_files/arrow.obj");
-  GLuint program_id = load_shaders(
+  const GLuint program_id = load_shaders(
       "../src/shaders/triangle.vert",
       "../src/shaders/triangle.frag");
 
