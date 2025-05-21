@@ -40,8 +40,6 @@ void Camera::update_camera_directions(const float deltaX, const float deltaY,
   float theta = glm::radians(horizontal_angle);
   float phi = glm::radians(vertical_angle);
 
-  auto target = glm::vec3(0.0f);
-  auto radius = 5.0f;
 
   position = target + glm::vec3(
       radius * cos(phi) * sin(theta),
@@ -102,39 +100,28 @@ bool Camera::handle_events(const float delta_time) {
   return false;
 }
 
-
-void Camera::update_camera_position(const Sint32 direction, const float delta_time) {
-  switch (direction) {
-    case SDLK_LEFT:
-      position -= right * delta_time * speed;
-      break;
-    case SDLK_RIGHT:
-      position += right * delta_time * speed;
-      break;
-    case SDLK_UP:
-      position += up * delta_time * speed;
-      break;
-    case SDLK_DOWN:
-      position -= up * delta_time * speed;
-      break;
-    default:
-      break;
-  }
-}
-
 void Camera::update_camera_position(const Uint8* keyboardState,
                                     const float delta_time) {
+  glm::vec3 offset;
   if (keyboardState[SDL_SCANCODE_RIGHT]) {
-    position -= right * speed * delta_time;
+    offset = right * delta_time * speed;
+    position -= offset;
+    target -= offset;
   }
   if (keyboardState[SDL_SCANCODE_LEFT]) {
-    position += right * speed * delta_time;
+    offset = right * delta_time * speed;
+    position += offset;
+    target += offset;
   }
   if (keyboardState[SDL_SCANCODE_UP]) {
-    position += up * speed * delta_time;
+    offset = up * delta_time * speed;
+    position += offset;
+    target += offset;
   }
   if (keyboardState[SDL_SCANCODE_DOWN]) {
-    position -= up * speed * delta_time;
+    offset = up * delta_time * speed;
+    position -= offset;
+    target -= offset;
   }
 }
 
