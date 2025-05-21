@@ -51,7 +51,9 @@ FetchContent_MakeAvailable(glm)
 
 add_executable(${PROJECT_NAME} src/main.cpp
         src/FileLoader.cpp
-        src/FileLoader.h)
+        src/FileLoader.h
+        src/solar_system.cpp
+        src/solar_system.h)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
   ${imgui_SOURCE_DIR}
@@ -98,6 +100,7 @@ enable_testing()
 add_executable(file_loader_test
         test/test_file_loader.cpp
         src/FileLoader.cpp
+        test/test_solar_system.cpp
 )
 
 target_link_libraries(file_loader_test PRIVATE

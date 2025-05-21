@@ -6,6 +6,7 @@
 
 #include "camera.hpp"
 #include "imgui.h"
+#include "solar_system.h"
 
 class GuiHandler {
   SDL_Window *window = nullptr;
@@ -16,6 +17,7 @@ class GuiHandler {
   glm::vec3 light_position = glm::vec3(4.0f, 4.0f, 4.0f);
   ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
   bool done{false};
+  bool paused{false};
   uint64_t last_time{0};
   uint64_t now_time{0};
   double delta_time{0.0};
@@ -25,7 +27,7 @@ class GuiHandler {
 
   void shutdown() const;
   void handle_events(const SDL_Event *);
-  void draw_control_window(glm::vec3*, glm::vec3*);
+  void draw_control_window(SolarSystem&);
 
 public:
   void init();

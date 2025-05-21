@@ -17,6 +17,7 @@
 #include <SDL_opengl.h>
 
 #include "FileLoader.h"
+#include "solar_system.h"
 
 void GuiHandler::init() {
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) !=
@@ -81,16 +82,19 @@ void GuiHandler::init() {
   ImGui_ImplOpenGL3_Init(glsl_version);
   glEnable(GL_CULL_FACE);
 }
+bool SliderDouble(const char* label, double& value, float min, float max, float factor) {
+  auto temp = static_cast<float>(value) / factor;
+  const bool changed = ImGui::SliderFloat(label, &temp, min, max);
+  if (changed) value = static_cast<double>(temp) * factor;
+  return changed;
+}
 
-void GuiHandler::draw_control_window(glm::vec3 *rotation, glm::vec3 *field_direction) {
+void GuiHandler::draw_control_window(SolarSystem& solar_system) {
   ImGui::Begin("Control");
-  ImGui::SliderFloat("Rotate X", &rotation->x, -1.0f, 1.0f);
-  ImGui::SliderFloat("Rotate Y", &rotation->y, -1.0f, 1.0f);
-  ImGui::SliderFloat("Rotate Z", &rotation->z, -1.0f, 1.0f);
-  ImGui::SliderFloat("Rotate Field X", &field_direction->x, -1.0f, 1.0f);
-  ImGui::SliderFloat("Rotate Field Y", &field_direction->y, -1.0f, 1.0f);
-  ImGui::SliderFloat("Rotate Field Z", &field_direction->z, -1.0f, 1.0f);
+  SliderDouble("Sun mass", solar_system.bodies[0].mass, 1.0f, 1000.0f, 1.0e29f);
+  SliderDouble("Earth mass", solar_system.bodies[1].mass, 1.0f, 10000.0f, 1.0e24f);
   ImGui::DragFloat3("Light Position", glm::value_ptr(light_position), 0.1f);
+  ImGui::Checkbox("Pause", &paused);
   ImGui::End();
 }
 
@@ -155,25 +159,6 @@ void draw_shape(const Shape shape, const GLuint program_id) {
   glDisableVertexAttribArray(1);
 }
 
-struct MagneticMoment {
-  glm::vec3 position;
-  glm::vec3 direction; // will change over time to align with the field
-};
-
-glm::vec3 magnetic_field_direction{1.0f, 0.0f, 0.0f}; // user-controlled
-float magnetic_field_strength = 1.0f; // user-controlled
-
-std::vector<MagneticMoment> moments;
-
-void init_moments() {
-  for (int x = -5; x <= 5; ++x) {
-    for (int y = -5; y <= 5; ++y) {
-      for (int z = -5; z <= 5; ++z) {
-        moments.push_back({glm::vec3(x/2.0, y/2.0, z/2.0), glm::vec3(0, 0, 1)});
-      }
-    }
-  }
-}
 
 glm::mat4 get_rotation_matrix(glm::vec3 direction) {
   glm::vec3 default_dir = glm::vec3(0.0f, 0.0f, 1.0f); // your model's default orientation
@@ -202,7 +187,7 @@ return rotation;
 
 void GuiHandler::start_main_loop() {
   const auto shape =
-      FileLoader::get_shape("../src/obj_files/arrow.obj");
+      FileLoader::get_shape("../src/obj_files/sphere.obj");
   const GLuint program_id = load_shaders(
       "../src/shaders/triangle.vert",
       "../src/shaders/triangle.frag");
@@ -212,8 +197,11 @@ void GuiHandler::start_main_loop() {
   auto model_rotation = glm::vec3(0.0f); // x, y, z rotation in degrees
   auto field_direction = glm::vec3(1.0f, 0.0f, 0.0f);
 
-  init_moments();
+  SolarSystem solar_system;
+  solar_system.init();
   glUseProgram(program_id);
+
+  auto counter = 1;
 
   while (!done) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -241,28 +229,19 @@ void GuiHandler::start_main_loop() {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    draw_control_window(&model_rotation, &field_direction);
+    draw_control_window(solar_system);
 
-    glUniform3f(glGetUniformLocation(program_id, "objectColor"), 1.0f, 0.0f,
-                0.0f);
+
+    glUniform3f(glGetUniformLocation(program_id, "objectColor"), 1.0f, 1.0f,
+                1.0f);
     glUniform3f(glGetUniformLocation(program_id, "lightColor"), 1.0f, 1.0f,
                 1.0f);
     glUniform3fv(glGetUniformLocation(program_id, "lightPos"), 1,
                  glm::value_ptr(light_position));
 
-    for (auto&[position, direction] : moments) {
-      direction = model_rotation;
-      const GLint color = glGetUniformLocation(program_id, "objectColor");
-      const float alignment = glm::dot(glm::normalize(direction), glm::normalize(field_direction)); // in [-1, 1]
-      glm::vec3 color_v;
-      color_v.r = glm::clamp(-alignment, 0.0f, 1.0f); // More red when anti-aligned
-      color_v.b = glm::clamp( alignment, 0.0f, 1.0f); // More blue when aligned
-      color_v.g = 1.0f - std::abs(alignment);         // Less green when aligned/anti-aligned
-
-      glUniform3f(color, color_v.r, color_v.g, color_v.b);
-      auto model = glm::translate(glm::mat4(1.0f), position);
-      model = model * get_rotation_matrix(direction);
-      model = glm::scale(model, glm::vec3(0.05f));
+    for (auto& body : solar_system.bodies) {
+      auto model = glm::translate(glm::mat4(1.0f), body.position / 1.0e10f);
+      model = glm::scale(model, glm::vec3(1.0f));
 
       auto mvp = camera.get_vp_matrix(static_cast<float>(window_width),
                                        static_cast<float>(window_height)) * model;
@@ -276,10 +255,15 @@ void GuiHandler::start_main_loop() {
       draw_shape(shape, program_id);
     }
 
+    if (counter % 2 == 0 && !paused) {
+      solar_system.updateBodies(static_cast<float>(delta_time));
+    }
+
     ImGui::Render();
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(window);
+    counter++;
   }
   shutdown();
 }
