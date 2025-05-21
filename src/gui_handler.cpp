@@ -80,8 +80,11 @@ void GuiHandler::init() {
   ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
   ImGui_ImplOpenGL3_Init(glsl_version);
   glEnable(GL_CULL_FACE);
+
+  camera.init(io);
 }
-bool SliderDouble(const char* label, double& value, float min, float max, float factor) {
+
+bool SliderDouble(const char* label, double& value, const float min, const float max, const float factor) {
   auto temp = static_cast<float>(value) / factor;
   const bool changed = ImGui::SliderFloat(label, &temp, min, max);
   if (changed) value = static_cast<double>(temp) * factor;
@@ -165,14 +168,18 @@ void GuiHandler::set_lighting(const GLuint program_id) {
                glm::value_ptr(light_position));
 }
 
+void GuiHandler::start_imgui_frame() {
+  ImGui_ImplOpenGL3_NewFrame();
+  ImGui_ImplSDL2_NewFrame();
+  ImGui::NewFrame();
+}
+
 void GuiHandler::start_main_loop() {
   const auto shape =
       FileLoader::get_shape("../src/obj_files/sphere.obj");
   const GLuint program_id = load_shaders(
       "../src/shaders/triangle.vert",
       "../src/shaders/triangle.frag");
-
-  camera.init();
 
   SolarSystem solar_system;
   solar_system.init();
@@ -187,17 +194,14 @@ void GuiHandler::start_main_loop() {
     delta_time = static_cast<double>((now_time - last_time) * 1000) /
                  static_cast<double>(SDL_GetPerformanceFrequency());
 
-    done = camera.handle_events(static_cast<float>(delta_time), io);
+    done = camera.handle_events(static_cast<float>(delta_time));
 
     if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) {
       SDL_Delay(10);
       continue;
     }
 
-    // Start the Dear ImGui frame
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
-    ImGui::NewFrame();
+    start_imgui_frame();
 
     draw_control_window(solar_system);
     set_lighting(program_id);
@@ -223,7 +227,6 @@ void GuiHandler::start_main_loop() {
     }
 
     ImGui::Render();
-
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(window);
     counter++;

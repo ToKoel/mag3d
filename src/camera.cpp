@@ -17,7 +17,8 @@ glm::mat4 Camera::get_view_matrix() const {
   return glm::lookAt(position, position + direction, up);
 }
 
-void Camera::init() {
+void Camera::init(ImGuiIO* io) {
+  this->io = io;
   update_camera_directions(1.0, 1.0, 0.0);
 }
 
@@ -65,7 +66,7 @@ void Camera::update_camera_directions(const float deltaX, const float deltaY,
   // up = glm::cross(right, direction);
 }
 
-bool Camera::handle_events(float delta_time, ImGuiIO *io) {
+bool Camera::handle_events(const float delta_time) {
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
     ImGui_ImplSDL2_ProcessEvent(&event);

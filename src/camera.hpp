@@ -23,6 +23,8 @@ class Camera {
   float mouse_speed = 0.01f;
   bool dragging = false;
 
+  ImGuiIO* io = nullptr;
+
 public:
   void update_camera_directions(float, float, float);
   [[nodiscard]] glm::mat4 get_vp_matrix(float, float) const;
@@ -32,8 +34,8 @@ public:
   void update_field_of_view(Sint32);
   void update_camera_position(Sint32, float);
   void update_camera_position(const Uint8 *, float);
-  void init();
-  bool handle_events(float, ImGuiIO*);
+  void init(ImGuiIO* io);
+  bool handle_events(float);
 
   float horizontal_angle = 3.14f;
   float vertical_angle = 0.0f;
