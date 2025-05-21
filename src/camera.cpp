@@ -15,6 +15,10 @@ glm::mat4 Camera::get_view_matrix() const {
   return glm::lookAt(position, position + direction, up);
 }
 
+void Camera::init() {
+  update_camera_directions(1.0, 1.0, 0.0);
+}
+
 glm::mat4 Camera::get_projection_matrix(const float window_width, const float window_height) const {
   return glm::perspective(
       glm::radians(field_of_view),

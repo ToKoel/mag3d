@@ -3,9 +3,8 @@
 #include <OpenGL/glu.h>
 #include <imgui_impl_opengl3_loader.h>
 
-#include <array>
 #include <cmath>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <span>
@@ -185,6 +184,15 @@ glm::mat4 get_rotation_matrix(glm::vec3 direction) {
 return rotation;
 }
 
+void GuiHandler::set_lighting(const GLuint program_id) {
+  glUniform3f(glGetUniformLocation(program_id, "objectColor"), 1.0f, 1.0f,
+              1.0f);
+  glUniform3f(glGetUniformLocation(program_id, "lightColor"), 1.0f, 1.0f,
+              1.0f);
+  glUniform3fv(glGetUniformLocation(program_id, "lightPos"), 1,
+               glm::value_ptr(light_position));
+}
+
 void GuiHandler::start_main_loop() {
   const auto shape =
       FileLoader::get_shape("../src/obj_files/sphere.obj");
@@ -194,8 +202,7 @@ void GuiHandler::start_main_loop() {
 
   SDL_Event event;
 
-  auto model_rotation = glm::vec3(0.0f); // x, y, z rotation in degrees
-  auto field_direction = glm::vec3(1.0f, 0.0f, 0.0f);
+  camera.init();
 
   SolarSystem solar_system;
   solar_system.init();
@@ -230,14 +237,7 @@ void GuiHandler::start_main_loop() {
     ImGui::NewFrame();
 
     draw_control_window(solar_system);
-
-
-    glUniform3f(glGetUniformLocation(program_id, "objectColor"), 1.0f, 1.0f,
-                1.0f);
-    glUniform3f(glGetUniformLocation(program_id, "lightColor"), 1.0f, 1.0f,
-                1.0f);
-    glUniform3fv(glGetUniformLocation(program_id, "lightPos"), 1,
-                 glm::value_ptr(light_position));
+    set_lighting(program_id);
 
     for (auto& body : solar_system.bodies) {
       auto model = glm::translate(glm::mat4(1.0f), body.position / 1.0e10f);

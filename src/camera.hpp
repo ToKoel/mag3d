@@ -29,6 +29,7 @@ public:
   void update_field_of_view(Sint32);
   void update_camera_position(SDL_KeyCode, float);
   void update_camera_position(const Uint8 *, float);
+  void init();
 
   float horizontal_angle = 3.14f;
   float vertical_angle = 0.0f;

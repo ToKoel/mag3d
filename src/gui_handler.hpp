@@ -3,6 +3,7 @@
 #include <SDL.h>
 
 #include <glm/glm.hpp>
+#include <OpenGL/gl3.h>
 
 #include "camera.hpp"
 #include "imgui.h"
@@ -28,6 +29,7 @@ class GuiHandler {
   void shutdown() const;
   void handle_events(const SDL_Event *);
   void draw_control_window(SolarSystem&);
+  void set_lighting(GLuint);
 
 public:
   void init();
