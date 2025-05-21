@@ -107,34 +107,6 @@ void GuiHandler::shutdown() const {
   SDL_Quit();
 }
 
-void GuiHandler::handle_events(const SDL_Event *event) {
-  if (event->type == SDL_MOUSEWHEEL) {
-    camera.update_field_of_view(event->wheel.y);
-  }
-
-  if (event->type == SDL_QUIT)
-    done = true;
-
-  if (event->type == SDL_MOUSEBUTTONDOWN &&
-      event->button.button == SDL_BUTTON_LEFT) {
-    if (!io->WantCaptureMouse) {
-      dragging = true;
-    }
-    SDL_SetRelativeMouseMode(SDL_TRUE);
-  }
-  if (event->type == SDL_MOUSEBUTTONUP &&
-      event->button.button == SDL_BUTTON_LEFT) {
-    dragging = false;
-    SDL_SetRelativeMouseMode(SDL_FALSE);
-  }
-
-  if (event->type == SDL_MOUSEMOTION && dragging) {
-    camera.update_camera_directions(static_cast<float>(event->motion.xrel),
-                                    static_cast<float>(event->motion.yrel),
-                                    static_cast<float>(delta_time));
-  }
-}
-
 void draw_shape(const Shape shape, const GLuint program_id) {
   constexpr auto number_of_vertices_per_triangle = 3;
 
@@ -200,8 +172,6 @@ void GuiHandler::start_main_loop() {
       "../src/shaders/triangle.vert",
       "../src/shaders/triangle.frag");
 
-  SDL_Event event;
-
   camera.init();
 
   SolarSystem solar_system;
@@ -217,14 +187,7 @@ void GuiHandler::start_main_loop() {
     delta_time = static_cast<double>((now_time - last_time) * 1000) /
                  static_cast<double>(SDL_GetPerformanceFrequency());
 
-    while (SDL_PollEvent(&event)) {
-      ImGui_ImplSDL2_ProcessEvent(&event);
-      handle_events(&event);
-    }
-
-    const Uint8 *keyboardState = SDL_GetKeyboardState(nullptr);
-    camera.update_camera_position(keyboardState,
-                                  static_cast<float>(delta_time));
+    done = camera.handle_events(static_cast<float>(delta_time), io);
 
     if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) {
       SDL_Delay(10);

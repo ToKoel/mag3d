@@ -4,6 +4,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "imgui_impl_sdl2.h"
+
 glm::mat4 Camera::get_vp_matrix(const float window_width, const float window_height) const {
   const glm::mat4 projection = get_projection_matrix(window_width, window_height);
   const glm::mat4 view = get_view_matrix();
@@ -63,7 +65,44 @@ void Camera::update_camera_directions(const float deltaX, const float deltaY,
   // up = glm::cross(right, direction);
 }
 
-void Camera::update_camera_position(const SDL_KeyCode direction, const float delta_time) {
+bool Camera::handle_events(float delta_time, ImGuiIO *io) {
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+    ImGui_ImplSDL2_ProcessEvent(&event);
+    if (event.type == SDL_MOUSEWHEEL) {
+      update_field_of_view(event.wheel.y);
+    }
+
+    if (event.type == SDL_QUIT)
+      return true;
+
+    if (event.type == SDL_MOUSEBUTTONDOWN &&
+        event.button.button == SDL_BUTTON_LEFT) {
+      if (!io->WantCaptureMouse) {
+        dragging = true;
+      }
+      SDL_SetRelativeMouseMode(SDL_TRUE);
+        }
+    if (event.type == SDL_MOUSEBUTTONUP &&
+        event.button.button == SDL_BUTTON_LEFT) {
+      dragging = false;
+      SDL_SetRelativeMouseMode(SDL_FALSE);
+        }
+
+    if (event.type == SDL_MOUSEMOTION && dragging) {
+      update_camera_directions(static_cast<float>(event.motion.xrel),
+                                      static_cast<float>(event.motion.yrel),
+                                      delta_time);
+    }
+  }
+
+  const Uint8 *keyboardState = SDL_GetKeyboardState(nullptr);
+  update_camera_position(keyboardState,delta_time);
+  return false;
+}
+
+
+void Camera::update_camera_position(const Sint32 direction, const float delta_time) {
   switch (direction) {
     case SDLK_LEFT:
       position -= right * delta_time * speed;

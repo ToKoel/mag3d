@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+#include "imgui.h"
+#include "SDL_events.h"
 #include "SDL_keycode.h"
 
 enum class Direction { LEFT, RIGHT, UP, DOWN };
@@ -19,6 +21,7 @@ class Camera {
 
   float speed = 0.005f; // 3 units / second
   float mouse_speed = 0.01f;
+  bool dragging = false;
 
 public:
   void update_camera_directions(float, float, float);
@@ -27,9 +30,10 @@ public:
   [[nodiscard]] glm::mat4 get_projection_matrix(float, float) const;
   void update_field_of_view(bool);
   void update_field_of_view(Sint32);
-  void update_camera_position(SDL_KeyCode, float);
+  void update_camera_position(Sint32, float);
   void update_camera_position(const Uint8 *, float);
   void init();
+  bool handle_events(float, ImGuiIO*);
 
   float horizontal_angle = 3.14f;
   float vertical_angle = 0.0f;

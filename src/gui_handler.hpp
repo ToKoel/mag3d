@@ -27,7 +27,7 @@ class GuiHandler {
   uint32_t window_height{768};
 
   void shutdown() const;
-  void handle_events(const SDL_Event *);
+  void handle_events(const SDL_Event&);
   void draw_control_window(SolarSystem&);
   void set_lighting(GLuint);
 
