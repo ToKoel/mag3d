@@ -22,9 +22,11 @@ class GuiHandler {
   uint64_t last_time{0};
   uint64_t now_time{0};
   double delta_time{0.0};
+  double now_time_adjusted{0.0};
   bool dragging{false};
   uint32_t window_width{1028};
   uint32_t window_height{768};
+  float inset_scale = 0.3f;
 
   void shutdown() const;
   void draw_control_window(SolarSystem&);

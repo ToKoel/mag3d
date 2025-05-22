@@ -20,7 +20,7 @@ class Camera {
   int x_mouse = 0;
   int y_mouse = 0;
 
-  float speed = 0.005f; // 3 units / second
+  float speed = 0.005f;
   float mouse_speed = 0.01f;
   bool dragging = false;
   float radius = 5.0f;

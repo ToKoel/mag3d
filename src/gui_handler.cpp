@@ -174,6 +174,41 @@ void GuiHandler::start_imgui_frame() {
   ImGui::NewFrame();
 }
 
+void draw_2d_overlay(const Body& body, float& inset_scale) {
+  ImGui::SetNextWindowSize(ImVec2(200, 200));
+  ImGui::SetNextWindowPos(ImVec2(10, 10)); // top-left corner
+  ImGui::Begin("Orbit View", nullptr,
+               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+               ImGuiWindowFlags_NoCollapse);
+
+  const ImVec2 canvas_pos = ImGui::GetCursorScreenPos();   // Top-left of drawing area
+  const ImVec2 canvas_size = ImGui::GetContentRegionAvail(); // Size of the window
+
+  ImDrawList* draw_list = ImGui::GetWindowDrawList();
+  draw_list->AddRectFilled(canvas_pos,
+  ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y),
+    IM_COL32(10, 10, 10, 255));
+
+  ImGui::SliderFloat("Scale", &inset_scale, 0.0f, 1.0f, "%.01f", ImGuiSliderFlags_Logarithmic);
+  const ImVec2 origin = ImVec2(canvas_pos.x + canvas_size.x * 0.5f,
+                       canvas_pos.y + canvas_size.y * 0.5f);
+
+  for (size_t i = 1; i < body.path_2d.size(); ++i) {
+    const glm::vec2 p0 = body.path_2d[i - 1];
+    const glm::vec2 p1 = body.path_2d[i];
+
+    auto point0 = ImVec2(origin.x + p0.x / inset_scale, origin.y - p0.y / inset_scale);
+    auto point1 = ImVec2(origin.x + p1.x / inset_scale, origin.y - p1.y / inset_scale);
+
+    auto fraction = static_cast<double>(body.path_2d.size() - i) / body.path_2d.size();
+    auto alpha = 255 * (1.0 - fraction);
+
+    draw_list->AddLine(point0, point1, IM_COL32(255, 255, 0, alpha), 1.0f);
+  }
+  draw_list->AddCircleFilled(origin, 2.0f, IM_COL32(255, 0, 0, 255));
+  ImGui::End();
+}
+
 void GuiHandler::start_main_loop() {
   const auto shape =
       FileLoader::get_shape("../src/obj_files/sphere.obj");
@@ -204,6 +239,7 @@ void GuiHandler::start_main_loop() {
     start_imgui_frame();
 
     draw_control_window(solar_system);
+    draw_2d_overlay(solar_system.bodies[1], inset_scale);
     set_lighting(program_id);
 
     for (auto& body : solar_system.bodies) {
