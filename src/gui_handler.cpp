@@ -86,7 +86,7 @@ void GuiHandler::init() {
 
 bool SliderDouble(const char* label, double& value, const float min, const float max, const float factor) {
   auto temp = static_cast<float>(value) / factor;
-  const bool changed = ImGui::SliderFloat(label, &temp, min, max);
+  const bool changed = ImGui::SliderFloat(label, &temp, min, max,"%.1f", ImGuiSliderFlags_Logarithmic);
   if (changed) value = static_cast<double>(temp) * factor;
   return changed;
 }
@@ -95,7 +95,7 @@ void GuiHandler::draw_control_window(SolarSystem& solar_system) {
   ImGui::Begin("Control");
   SliderDouble("Sun mass", solar_system.bodies[0].mass, 1.0f, 1000.0f, 1.0e29f);
   SliderDouble("Earth mass", solar_system.bodies[1].mass, 1.0f, 10000.0f, 1.0e24f);
-  ImGui::DragFloat3("Light Position", glm::value_ptr(light_position), 0.1f);
+  ImGui::SliderFloat("Simulation time factor", &simulation_time_factor, 1.0, 100.0);
   ImGui::Checkbox("Pause", &paused);
   ImGui::End();
 }
@@ -191,7 +191,7 @@ void draw_2d_overlay(const Body& body, float& inset_scale) {
   ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y),
     IM_COL32(10, 10, 10, 255));
 
-  ImGui::SliderFloat("Scale", &inset_scale, 0.0f, 1.0f, "%.01f", ImGuiSliderFlags_Logarithmic);
+  ImGui::SliderFloat("Scale", &inset_scale, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
   const ImVec2 origin = ImVec2(canvas_pos.x + canvas_size.x * 0.5f,
                        canvas_pos.y + canvas_size.y * 0.5f);
 
@@ -248,9 +248,9 @@ void GuiHandler::start_main_loop() {
       glUniform1i(glGetUniformLocation(program_id, "isEmissive"), body.is_emitter ? 1 : 0);
       if (body.is_emitter) {
         glUniform3fv(glGetUniformLocation(program_id, "lightPos"), 1,
-                     glm::value_ptr(body.position / 1.0e10f));
+                     glm::value_ptr(body.position / 5.0e10f));
       }
-      auto model = glm::translate(glm::mat4(1.0f), body.position / 1.0e10f);
+      auto model = glm::translate(glm::mat4(1.0f), body.position / 5e10f);
       model = glm::scale(model, glm::vec3(1.0f));
 
       auto mvp = camera.get_vp_matrix(static_cast<float>(window_width),
@@ -266,7 +266,7 @@ void GuiHandler::start_main_loop() {
     }
 
     if (counter % 2 == 0 && !paused) {
-      solar_system.updateBodies(static_cast<float>(delta_time));
+      solar_system.updateBodies(static_cast<float>(delta_time) * simulation_time_factor);
     }
 
     ImGui::Render();
