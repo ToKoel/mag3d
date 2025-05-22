@@ -245,6 +245,11 @@ void GuiHandler::start_main_loop() {
     set_lighting(program_id);
 
     for (auto& body : solar_system.bodies) {
+      glUniform1i(glGetUniformLocation(program_id, "isEmissive"), body.is_emitter ? 1 : 0);
+      if (body.is_emitter) {
+        glUniform3fv(glGetUniformLocation(program_id, "lightPos"), 1,
+                     glm::value_ptr(body.position / 1.0e10f));
+      }
       auto model = glm::translate(glm::mat4(1.0f), body.position / 1.0e10f);
       model = glm::scale(model, glm::vec3(1.0f));
 

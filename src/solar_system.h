@@ -16,6 +16,7 @@ struct Body {
     glm::vec3 color;
     glm::vec3 force;  // kg * m / s ^ 2
     std::deque<glm::vec2> path_2d;
+    bool is_emitter = false;
 };
 
 class SolarSystem {
@@ -29,6 +30,7 @@ public:
         float mass_earth = 5.972e24f;
         float orbital_velocity = sqrt(G * mass_sun / radius);
         Body sun = { glm::vec3(0), glm::vec3(0), mass_sun, {1.0f, 0.5f, 0.0f} };
+        sun.is_emitter = true;
         Body earth = {
             glm::vec3(1.49e11f, 0.0f, 0.0f),
             glm::vec3(0.0, orbital_velocity, 0.0f),
@@ -59,13 +61,13 @@ public:
 
     void updateBodies(const float dt) {
         computeForces(bodies);
-        for (auto&[position, velocity, mass, color, force, path] : bodies) {
-            glm::vec3 acceleration = force / static_cast<float>(mass);
-            velocity += acceleration * dt;
-            position += velocity * dt;
-            path.emplace_back(position / 10e9f);
-            while (path.size() > 10000) {
-                path.pop_front();
+        for (auto& body : bodies) {
+            glm::vec3 acceleration = body.force / static_cast<float>(body.mass);
+            body.velocity += acceleration * dt;
+            body.position += body.velocity * dt;
+            body.path_2d.emplace_back(body.position / 10e9f);
+            while (body.path_2d.size() > 10000) {
+                body.path_2d.pop_front();
             }
         }
     }
