@@ -13,6 +13,7 @@ struct Body {
     glm::vec3 position; // m
     glm::vec3 velocity; // m/s
     double mass; // kg
+    glm::vec3 color;
     glm::vec3 force;  // kg * m / s ^ 2
     std::deque<glm::vec2> path_2d;
 };
@@ -27,11 +28,12 @@ public:
         float mass_sun = 2e30f;
         float mass_earth = 5.972e24f;
         float orbital_velocity = sqrt(G * mass_sun / radius);
-        Body sun = { glm::vec3(0), glm::vec3(0), mass_sun };
+        Body sun = { glm::vec3(0), glm::vec3(0), mass_sun, {1.0f, 0.5f, 0.0f} };
         Body earth = {
             glm::vec3(1.49e11f, 0.0f, 0.0f),
             glm::vec3(0.0, orbital_velocity, 0.0f),
-            mass_earth
+            mass_earth,
+            {0.2f, 0.2f, 1.0f}
         };
         bodies.push_back(sun);
         bodies.push_back(earth);
@@ -57,7 +59,7 @@ public:
 
     void updateBodies(const float dt) {
         computeForces(bodies);
-        for (auto&[position, velocity, mass, force, path] : bodies) {
+        for (auto&[position, velocity, mass, color, force, path] : bodies) {
             glm::vec3 acceleration = force / static_cast<float>(mass);
             velocity += acceleration * dt;
             position += velocity * dt;

@@ -110,7 +110,7 @@ void GuiHandler::shutdown() const {
   SDL_Quit();
 }
 
-void draw_shape(const Shape shape, const GLuint program_id) {
+void draw_shape(const Shape shape, const GLuint program_id, glm::vec3 color) {
   constexpr auto number_of_vertices_per_triangle = 3;
 
   glEnableVertexAttribArray(0);
@@ -126,6 +126,8 @@ void draw_shape(const Shape shape, const GLuint program_id) {
   glEnableVertexAttribArray(1);
   glBindBuffer(GL_ARRAY_BUFFER, shape.normal_buffer_id);
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+  glUniform3f(glGetUniformLocation(program_id, "objectColor"), color.r, color.g,
+              color.b);
 
   glDrawArrays(GL_TRIANGLES, 0,
                shape.number_of_triangles * number_of_vertices_per_triangle);
@@ -160,8 +162,8 @@ return rotation;
 }
 
 void GuiHandler::set_lighting(const GLuint program_id) {
-  glUniform3f(glGetUniformLocation(program_id, "objectColor"), 1.0f, 1.0f,
-              1.0f);
+  // glUniform3f(glGetUniformLocation(program_id, "objectColor"), 1.0f, 1.0f,
+  //             1.0f);
   glUniform3f(glGetUniformLocation(program_id, "lightColor"), 1.0f, 1.0f,
               1.0f);
   glUniform3fv(glGetUniformLocation(program_id, "lightPos"), 1,
@@ -203,9 +205,9 @@ void draw_2d_overlay(const Body& body, float& inset_scale) {
     auto fraction = static_cast<double>(body.path_2d.size() - i) / body.path_2d.size();
     auto alpha = 255 * (1.0 - fraction);
 
-    draw_list->AddLine(point0, point1, IM_COL32(255, 255, 0, alpha), 1.0f);
+    draw_list->AddLine(point0, point1, IM_COL32(100, 100, 255, alpha), 2.0f);
   }
-  draw_list->AddCircleFilled(origin, 2.0f, IM_COL32(255, 0, 0, 255));
+  draw_list->AddCircleFilled(origin, 2.0f, IM_COL32(255, 255, 0, 255));
   ImGui::End();
 }
 
@@ -255,7 +257,7 @@ void GuiHandler::start_main_loop() {
                          &view[0][0]);
       glUniformMatrix4fv(glGetUniformLocation(program_id, "M"), 1, GL_FALSE,
                          &model[0][0]);
-      draw_shape(shape, program_id);
+      draw_shape(shape, program_id, body.color);
     }
 
     if (counter % 2 == 0 && !paused) {
