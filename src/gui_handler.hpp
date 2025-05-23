@@ -23,6 +23,7 @@ class GuiHandler {
   uint64_t now_time{0};
   double delta_time{0.0};
   float simulation_time_factor{10.0};
+  double elapsed_simulation_time{0.0};
   bool dragging{false};
   uint32_t window_width{1028};
   uint32_t window_height{768};

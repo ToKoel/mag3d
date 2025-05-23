@@ -15,27 +15,38 @@ struct Body {
     double mass; // kg
     glm::vec3 color;
     glm::vec3 force;  // kg * m / s ^ 2
-    std::deque<glm::vec2> path_2d;
+    std::deque<glm::vec3> path_3d;
     bool is_emitter = false;
+    glm::vec3 prev_acceleration;
+};
+
+struct BodyParameters {
+    double mass;
+    double radius;
 };
 
 class SolarSystem {
 public:
     std::vector<Body> bodies;
     const double G = 6.67430e-6f; // m ^ 3 / kg * s ^2
+    const double G_au = 2.96e-4; // au^3 / m_s day^2
+    const double gamma = 1.327e25; // m^3 s^-2
+    const double AU = 1.49e11; // m
+    const double MU = 5.972e24f; // kg
 
     void init() {
-        float radius = 1.49e11f;
-        float mass_sun = 2e30f;
-        float mass_earth = 5.972e24f;
-        float orbital_velocity = sqrt(G * mass_sun / radius);
-        Body sun = { glm::vec3(0), glm::vec3(0), mass_sun, {1.0f, 0.5f, 0.0f} };
-        sun.is_emitter = true;
+        Body sun = {
+            .position = glm::vec3(0),
+            .velocity = glm::vec3(0),
+            .mass = 1.0,
+            .color = {1.0f, 0.5f, 0.0f},
+            .is_emitter = true
+        };
         Body earth = {
-            glm::vec3(1.49e11f, 0.0f, 0.0f),
-            glm::vec3(0.0, orbital_velocity, 0.0f),
-            mass_earth,
-            {0.2f, 0.2f, 1.0f}
+            .position = glm::vec3(1.0, 0.0f, 0.0f),
+            .velocity = glm::vec3(0.0, 0.01225, 0.0f),
+            .mass = 2e-6,
+            .color = {0.2f, 0.2f, 1.0f}
         };
         bodies.push_back(sun);
         bodies.push_back(earth);
@@ -50,7 +61,7 @@ public:
                 const double dist = glm::length(r);
                 glm::vec3 direction = glm::normalize(r);
 
-                const double force_magnitude = G * bodies[i].mass * bodies[j].mass / (dist * dist);
+                const double force_magnitude = G_au * bodies[i].mass * bodies[j].mass / (dist * dist);
                 const glm::vec3 force = static_cast<float>(force_magnitude) * direction;
 
                 bodies[i].force += force;
@@ -59,20 +70,34 @@ public:
         }
     }
 
-    void updateBodies(const float dt) {
+    void update_bodies_verlet(const float dt) {
         computeForces(bodies);
+
         for (auto& body : bodies) {
             glm::vec3 acceleration = body.force / static_cast<float>(body.mass);
-            body.velocity += acceleration * dt;
-            body.position += body.velocity * dt;
-            body.path_2d.emplace_back(body.position / 10e9f);
-            while (body.path_2d.size() > 10000) {
-                body.path_2d.pop_front();
+
+            // Store current acceleration for velocity update later
+            body.prev_acceleration = acceleration;
+
+            // Update position
+            body.position += body.velocity * dt + 0.5f * acceleration * dt * dt;
+        }
+
+        // Recompute forces after updating positions
+        computeForces(bodies);
+
+        for (auto& body : bodies) {
+            glm::vec3 new_acceleration = body.force / static_cast<float>(body.mass);
+
+            // Update velocity using average of old and new acceleration
+            body.velocity += 0.5f * (body.prev_acceleration + new_acceleration) * dt;
+
+            body.path_3d.emplace_back(body.position);
+            while (body.path_3d.size() > 10000) {
+                body.path_3d.pop_front();
             }
         }
     }
-
-
 
 };
 
