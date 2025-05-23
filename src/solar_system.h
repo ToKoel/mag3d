@@ -11,6 +11,7 @@
 
 struct Body {
     glm::vec3 position; // m
+    glm::vec3 draw_position;
     glm::vec3 velocity; // m/s
     double mass; // kg
     glm::vec3 color;
@@ -33,6 +34,7 @@ public:
     const double gamma = 1.327e25; // m^3 s^-2
     const double AU = 1.49e11; // m
     const double MU = 5.972e24f; // kg
+    const float position_scale = 5.0f;
 
     void init() {
         Body sun = {
@@ -92,7 +94,8 @@ public:
             // Update velocity using average of old and new acceleration
             body.velocity += 0.5f * (body.prev_acceleration + new_acceleration) * dt;
 
-            body.path_3d.emplace_back(body.position);
+            body.draw_position = body.position * position_scale;
+            body.path_3d.emplace_back(body.draw_position);
             while (body.path_3d.size() > 10000) {
                 body.path_3d.pop_front();
             }

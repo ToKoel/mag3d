@@ -111,7 +111,7 @@ void GuiHandler::shutdown() const {
   SDL_Quit();
 }
 
-void draw_shape(const Shape shape, const GLuint program_id, glm::vec3 color) {
+void draw_shape(const Shape shape, const GLuint program_id,const glm::vec3 color) {
   constexpr auto number_of_vertices_per_triangle = 3;
 
   glEnableVertexAttribArray(0);
@@ -132,8 +132,12 @@ void draw_shape(const Shape shape, const GLuint program_id, glm::vec3 color) {
 
   glDrawArrays(GL_TRIANGLES, 0,
                shape.number_of_triangles * number_of_vertices_per_triangle);
+
+
   glDisableVertexAttribArray(0);
   glDisableVertexAttribArray(1);
+  // glDisableVertexAttribArray(2);
+  // glUseProgram(program_id);
 }
 
 
@@ -218,6 +222,12 @@ void GuiHandler::start_main_loop() {
   const GLuint program_id = load_shaders(
       "../src/shaders/triangle.vert",
       "../src/shaders/triangle.frag");
+  const GLuint path_program_id = load_shaders(
+    "../src/shaders/path.vert",
+    "../src/shaders/path.frag");
+  GLuint path_vbo;
+  glGenBuffers(1, &path_vbo);
+
 
   SolarSystem solar_system;
   solar_system.init();
@@ -253,11 +263,12 @@ void GuiHandler::start_main_loop() {
     set_lighting(program_id);
 
     for (auto& body : solar_system.bodies) {
+      glUseProgram(program_id);
       glUniform1i(glGetUniformLocation(program_id, "isEmissive"), body.is_emitter ? 1 : 0);
       if (body.is_emitter) {
-        light_position = body.position;
+        light_position = body.draw_position;
       }
-      auto model = glm::translate(glm::mat4(1.0f), body.position * 5.0f);
+      auto model = glm::translate(glm::mat4(1.0f), body.draw_position);
       model = glm::scale(model,
         glm::vec3(static_cast<float>(std::min(body.mass * 100000.0, 0.5))));
 
@@ -272,6 +283,26 @@ void GuiHandler::start_main_loop() {
                          &model[0][0]);
       draw_shape(shape, program_id, body.color);
     }
+
+    glUseProgram(path_program_id);
+    auto mvp = camera.get_vp_matrix(static_cast<float>(window_width),
+                                    static_cast<float>(window_height));
+    glUniformMatrix4fv(glGetUniformLocation(path_program_id, "MVP"), 1, GL_FALSE, &mvp[0][0]);
+
+    for (const auto& body : solar_system.bodies) {
+      if (body.path_3d.size() < 2) continue;
+
+      std::vector path_vec(body.path_3d.begin(), body.path_3d.end());
+      glBindBuffer(GL_ARRAY_BUFFER, path_vbo);
+      glBufferData(GL_ARRAY_BUFFER, path_vec.size() * sizeof(glm::vec3),
+                   path_vec.data(), GL_DYNAMIC_DRAW);
+
+      glEnableVertexAttribArray(0);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+      glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(path_vec.size()));
+      glDisableVertexAttribArray(0);
+    }
+
 
     if (counter % 2 == 0 && !paused) {
       solar_system.update_bodies_verlet(static_cast<float>(delta_time_seconds) / 60.0f / 60.0f / 24.0f * simulation_time_factor);

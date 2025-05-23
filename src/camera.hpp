@@ -9,7 +9,7 @@
 enum class Direction { LEFT, RIGHT, UP, DOWN };
 
 class Camera {
-  float field_of_view = 45.0f;
+  float field_of_view = 90.0f;
 
   glm::vec3 position = glm::vec3(0, 0, 5);
   glm::vec3 target = glm::vec3(0, 0, 0);
