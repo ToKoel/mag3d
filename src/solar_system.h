@@ -46,7 +46,7 @@ public:
         };
         Body earth = {
             .position = glm::vec3(1.0, 0.0f, 0.0f),
-            .velocity = glm::vec3(0.0, 0.01225, 0.0f),
+            .velocity = glm::vec3(0.0, 0.014, 0.0f),
             .mass = 2e-6,
             .color = {0.2f, 0.2f, 1.0f}
         };

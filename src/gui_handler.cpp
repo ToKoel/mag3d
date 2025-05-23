@@ -84,17 +84,17 @@ void GuiHandler::init() {
   camera.init(io);
 }
 
-bool SliderDouble(const char* label, double& value, const float min, const float max, const float factor) {
-  auto temp = static_cast<float>(value) / factor;
-  const bool changed = ImGui::SliderFloat(label, &temp, min, max,"%.1f", ImGuiSliderFlags_Logarithmic);
-  if (changed) value = static_cast<double>(temp) * factor;
+bool SliderDouble(const char* label, double& value, const float min, const float max) {
+  auto temp = static_cast<float>(value);
+  const bool changed = ImGui::SliderFloat(label, &temp, min, max,"%.7f", ImGuiSliderFlags_Logarithmic);
+  if (changed) value = static_cast<double>(temp);
   return changed;
 }
 
 void GuiHandler::draw_control_window(SolarSystem& solar_system) {
   ImGui::Begin("Control");
-  SliderDouble("Sun mass", solar_system.bodies[0].mass, 1.0f, 1000.0f, 1.0e29f);
-  SliderDouble("Earth mass", solar_system.bodies[1].mass, 1.0f, 10000.0f, 1.0e24f);
+  SliderDouble("Sun mass", solar_system.bodies[0].mass, 0.01f, 100.0f);
+  SliderDouble("Earth mass", solar_system.bodies[1].mass, 0.0000001f, 1.0f);
   ImGui::SliderFloat("Simulation time factor", &simulation_time_factor, 1.0, 1000000.0, "%.0f", ImGuiSliderFlags_Logarithmic);
   ImGui::Checkbox("Pause", &paused);
   ImGui::Text("Time: %.1f days", elapsed_simulation_time);
