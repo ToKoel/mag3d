@@ -31,7 +31,6 @@ class GuiHandler {
 
   void shutdown() const;
   void draw_control_window(SolarSystem&);
-  void set_lighting(GLuint);
   static void start_imgui_frame();
 
 public:

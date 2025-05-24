@@ -133,11 +133,8 @@ void draw_shape(const Shape shape, const GLuint program_id,const glm::vec3 color
   glDrawArrays(GL_TRIANGLES, 0,
                shape.number_of_triangles * number_of_vertices_per_triangle);
 
-
   glDisableVertexAttribArray(0);
   glDisableVertexAttribArray(1);
-  // glDisableVertexAttribArray(2);
-  // glUseProgram(program_id);
 }
 
 
@@ -164,15 +161,6 @@ glm::mat4 get_rotation_matrix(glm::vec3 direction) {
     rotation = glm::rotate(glm::mat4(1.0f), angle, axis);
   }
 return rotation;
-}
-
-void GuiHandler::set_lighting(const GLuint program_id) {
-  // glUniform3f(glGetUniformLocation(program_id, "objectColor"), 1.0f, 1.0f,
-  //             1.0f);
-  glUniform3f(glGetUniformLocation(program_id, "lightColor"), 1.0f, 1.0f,
-              1.0f);
-  glUniform3fv(glGetUniformLocation(program_id, "lightPos"), 1,
-               glm::value_ptr(light_position));
 }
 
 void GuiHandler::start_imgui_frame() {
@@ -245,7 +233,6 @@ void GuiHandler::start_main_loop() {
     delta_time_seconds = static_cast<double>(now_time - last_time) /
                   static_cast<double>(SDL_GetPerformanceFrequency());
     last_time = now_time;
-    elapsed_simulation_time += static_cast<float>(delta_time_seconds) / 86400 * simulation_time_factor;
 
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -260,11 +247,11 @@ void GuiHandler::start_main_loop() {
     start_imgui_frame();
     draw_control_window(solar_system);
     draw_2d_overlay(solar_system.bodies[1], inset_scale);
-    set_lighting(program_id);
 
     for (auto& body : solar_system.bodies) {
       glUseProgram(program_id);
       glUniform1i(glGetUniformLocation(program_id, "isEmissive"), body.is_emitter ? 1 : 0);
+      glUniform3f(glGetUniformLocation(program_id, "lightColor"), 1.0f, 1.0f, 1.0f);
       if (body.is_emitter) {
         light_position = body.draw_position;
       }
@@ -304,7 +291,8 @@ void GuiHandler::start_main_loop() {
     }
 
 
-    if (counter % 2 == 0 && !paused) {
+    if (!paused) {
+      elapsed_simulation_time += static_cast<float>(delta_time_seconds) / 86400 * simulation_time_factor;
       solar_system.update_bodies_verlet(static_cast<float>(delta_time_seconds) / 60.0f / 60.0f / 24.0f * simulation_time_factor);
     }
 
