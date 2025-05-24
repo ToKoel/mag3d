@@ -17,7 +17,7 @@ void SolarSystemGraphics::init() {
     glGenBuffers(1, &path_vbo);
 }
 
-void SolarSystemGraphics::draw_planets(glm::vec3 color) {
+void SolarSystemGraphics::draw_planets(const glm::vec3 color) const {
         constexpr auto number_of_vertices_per_triangle = 3;
 
         glEnableVertexAttribArray(0);
@@ -140,8 +140,8 @@ void SolarSystemGraphics::draw_orbit_view() {
         auto point0 = ImVec2(origin.x + p0.x / inset_scale, origin.y - p0.y / inset_scale);
         auto point1 = ImVec2(origin.x + p1.x / inset_scale, origin.y - p1.y / inset_scale);
 
-        auto fraction = static_cast<double>(body.path_3d.size() - i) / body.path_3d.size();
-        auto alpha = 255 * (1.0 - fraction);
+        const auto fraction = static_cast<double>(body.path_3d.size() - i) / body.path_3d.size();
+        const auto alpha = 255 * (1.0 - fraction);
 
         draw_list->AddLine(point0, point1, IM_COL32(body.color.r * 255, body.color.g * 255, body.color.b * 255, alpha), 2.0f);
       }

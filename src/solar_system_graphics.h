@@ -25,7 +25,7 @@ class SolarSystemGraphics {
 
     glm::vec3 light_position{0.0};
 
-    void draw_planets(glm::vec3 color);
+    void draw_planets(glm::vec3 color) const;
     void draw_paths();
 
     public:
