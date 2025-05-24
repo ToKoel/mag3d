@@ -1,6 +1,5 @@
 #include "gui_handler.hpp"
 #include <OpenGL/gl3.h>
-#include <OpenGL/glu.h>
 #include <imgui_impl_opengl3_loader.h>
 
 #include <cmath>
@@ -13,7 +12,6 @@
 #include "imgui_impl_sdl2.h"
 #include <SDL_opengl.h>
 
-#include "file_loader.h"
 #include "solar_system_calculator.h"
 #include "solar_system_graphics.h"
 

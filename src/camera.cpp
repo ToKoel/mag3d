@@ -1,5 +1,6 @@
 #include "camera.hpp"
 
+#include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -34,14 +35,12 @@ void Camera::update_camera_directions(const float deltaX, const float deltaY,
                                       const float delta_time) {
   horizontal_angle += deltaX * mouse_speed * delta_time;
   vertical_angle += deltaY * mouse_speed * delta_time;
-  if (vertical_angle > 89.0f) vertical_angle = 89.0f;
-  if (vertical_angle < -89.0f) vertical_angle = -89.0f;
 
+  if (vertical_angle > 179.0f) vertical_angle = 179.0f;
+  if (vertical_angle < -179.0f) vertical_angle = -179.0f;
 
-  // Spherical to Cartesian conversion for camera position
-  float theta = glm::radians(horizontal_angle);
-  float phi = glm::radians(vertical_angle);
-
+  const float theta = glm::radians(horizontal_angle);
+  const float phi = glm::radians(vertical_angle);
 
   position = target + glm::vec3(
       radius * cos(phi) * sin(theta),
@@ -49,21 +48,15 @@ void Camera::update_camera_directions(const float deltaX, const float deltaY,
       radius * cos(phi) * cos(theta)
   );
 
-  // New direction vector from camera to target
   direction = glm::normalize(target - position);
 
-  // Right and Up vectors for view matrix
-  right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), direction));
+  constexpr auto world_up = glm::vec3(0.0f, 1.0f, 0.0f);
+  if (vertical_angle < -90.0f || vertical_angle > 90.0f) {
+    right = glm::normalize(glm::cross(direction, world_up));
+  } else {
+    right = glm::normalize(glm::cross(world_up, direction));
+  }
   up = glm::normalize(glm::cross(direction, right));
-
-  // direction = glm::vec3(cos(vertical_angle) * sin(horizontal_angle),
-  //                       sin(vertical_angle),
-  //                       cos(vertical_angle) * cos(horizontal_angle));
-  //
-  // right = glm::vec3(sin(horizontal_angle - 3.14f / 2.0f), 0,
-  //                   cos(horizontal_angle - 3.14f / 2.0f));
-  //
-  // up = glm::cross(right, direction);
 }
 
 bool Camera::handle_events(const float delta_time) {
