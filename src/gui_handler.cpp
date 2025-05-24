@@ -76,7 +76,10 @@ void GuiHandler::init() {
   // Setup Platform/Renderer backends
   ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
   ImGui_ImplOpenGL3_Init(glsl_version);
+
   glEnable(GL_CULL_FACE);
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LESS);
 
   camera.init(io, static_cast<float>(window_width), static_cast<float>(window_height));
 }

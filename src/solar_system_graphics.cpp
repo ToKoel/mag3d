@@ -7,7 +7,7 @@
 
 void SolarSystemGraphics::init() {
     planet_shape =
-        FileLoader::load_shape("../src/obj_files/sphere_centered_scaled.obj");
+        FileLoader::load_shape("../src/obj_files/sphere_auto_smooth.obj");
     planet_program = FileLoader::load_shaders(
         "../src/shaders/planet.vert",
         "../src/shaders/planet.frag");

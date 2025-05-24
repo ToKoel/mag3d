@@ -76,9 +76,6 @@ std::vector<ObjVertex> FileLoader::load_obj_file(std::string_view path) {
 std::pair<GLuint, GLuint>
 FileLoader::init_shape(const std::span<glm::vec3> vertex_buffer_data,
                        const std::span<glm::vec3> normal_buffer_data) {
-  glEnable(GL_DEPTH_TEST);
-  // Accept fragment if it closer to the camera than the former one
-  glDepthFunc(GL_LESS);
 
   GLuint vertex_array_id;
   glGenVertexArrays(1, &vertex_array_id);
