@@ -169,7 +169,7 @@ void GuiHandler::start_imgui_frame() {
   ImGui::NewFrame();
 }
 
-void draw_2d_overlay(const Body& body, float& inset_scale) {
+void draw_2d_overlay(const std::vector<Body>& bodies, float& inset_scale) {
   ImGui::SetNextWindowSize(ImVec2(200, 200));
   ImGui::SetNextWindowPos(ImVec2(10, 10)); // top-left corner
   ImGui::Begin("Orbit View", nullptr,
@@ -188,19 +188,30 @@ void draw_2d_overlay(const Body& body, float& inset_scale) {
   const auto origin = ImVec2(canvas_pos.x + canvas_size.x * 0.5f,
                        canvas_pos.y + canvas_size.y * 0.5f);
 
-  for (size_t i = 1; i < body.path_3d.size(); ++i) {
-    const glm::vec2 p0 = body.path_3d[i - 1];
-    const glm::vec2 p1 = body.path_3d[i];
 
-    auto point0 = ImVec2(origin.x + p0.x / inset_scale, origin.y - p0.y / inset_scale);
-    auto point1 = ImVec2(origin.x + p1.x / inset_scale, origin.y - p1.y / inset_scale);
 
-    auto fraction = static_cast<double>(body.path_3d.size() - i) / body.path_3d.size();
-    auto alpha = 255 * (1.0 - fraction);
+  for (const auto& body : bodies) {
+    if (body.path_3d.size() < 2) continue;
+    if (glm::length(body.path_3d.back() - body.path_3d.front()) < 1e-3f) {
+      // Draw a dot if the path is too short or stationary
+      const glm::vec2 pos = body.path_3d.back();
+      auto point = ImVec2(origin.x + pos.x / inset_scale, origin.y - pos.y / inset_scale);
+      draw_list->AddCircleFilled(point, 2.0f, IM_COL32(body.color.r * 255, body.color.g * 255, body.color.b * 255, 255));
+    } else {
+      for (size_t i = 1; i < body.path_3d.size(); ++i) {
+        const glm::vec2 p0 = body.path_3d[i - 1];
+        const glm::vec2 p1 = body.path_3d[i];
 
-    draw_list->AddLine(point0, point1, IM_COL32(100, 100, 255, alpha), 2.0f);
+        auto point0 = ImVec2(origin.x + p0.x / inset_scale, origin.y - p0.y / inset_scale);
+        auto point1 = ImVec2(origin.x + p1.x / inset_scale, origin.y - p1.y / inset_scale);
+
+        auto fraction = static_cast<double>(body.path_3d.size() - i) / body.path_3d.size();
+        auto alpha = 255 * (1.0 - fraction);
+
+        draw_list->AddLine(point0, point1, IM_COL32(body.color.r * 255, body.color.g * 255, body.color.b * 255, alpha), 2.0f);
+      }
+    }
   }
-  draw_list->AddCircleFilled(origin, 2.0f, IM_COL32(255, 255, 0, 255));
   ImGui::End();
 }
 
@@ -216,12 +227,10 @@ void GuiHandler::start_main_loop() {
   GLuint path_vbo;
   glGenBuffers(1, &path_vbo);
 
-
   SolarSystem solar_system;
   solar_system.init();
   glUseProgram(program_id);
 
-  auto counter = 1;
   double delta_time_seconds = 0.0;
   now_time = SDL_GetPerformanceCounter();
   last_time = now_time;
@@ -234,7 +243,6 @@ void GuiHandler::start_main_loop() {
                   static_cast<double>(SDL_GetPerformanceFrequency());
     last_time = now_time;
 
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     done = camera.handle_events(static_cast<float>(delta_time));
@@ -246,7 +254,7 @@ void GuiHandler::start_main_loop() {
 
     start_imgui_frame();
     draw_control_window(solar_system);
-    draw_2d_overlay(solar_system.bodies[1], inset_scale);
+    draw_2d_overlay(solar_system.bodies, inset_scale);
 
     for (auto& body : solar_system.bodies) {
       glUseProgram(program_id);
@@ -290,16 +298,14 @@ void GuiHandler::start_main_loop() {
       glDisableVertexAttribArray(0);
     }
 
-
     if (!paused) {
       elapsed_simulation_time += static_cast<float>(delta_time_seconds) / 86400 * simulation_time_factor;
-      solar_system.update_bodies_verlet(static_cast<float>(delta_time_seconds) / 60.0f / 60.0f / 24.0f * simulation_time_factor);
+      solar_system.update_bodies_verlet(static_cast<float>(delta_time_seconds) / 86400 * simulation_time_factor);
     }
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(window);
-    counter++;
   }
   shutdown();
 }
