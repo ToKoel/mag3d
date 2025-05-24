@@ -19,6 +19,7 @@ struct Body {
   std::deque<glm::vec3> path_3d;
   bool is_emitter = false;
   glm::vec3 prev_acceleration;
+  const std::size_t max_path = 5000;
 };
 
 struct BodyParameters {
@@ -41,11 +42,13 @@ public:
                 .velocity = glm::vec3(0),
                 .mass = 1.0,
                 .color = {1.0f, 0.5f, 0.0f},
+                .max_path = 10,
                 .is_emitter = true};
     Body mercury = {.position = glm::vec3(0.39, 0.0f, 0.0f),
                  .velocity = glm::vec3(0.0, 0.027352689, 0.0f),
                  .mass = 1.1e-7,
-                 .color = {0.678f, 0.6588f, 0.647f}};
+                 .color = {0.678f, 0.6588f, 0.647f},
+                 .max_path = 2000};
     Body venus = {.position = glm::vec3(0.72, 0.0f, 0.0f),
                  .velocity = glm::vec3(0.0, 0.020225742, 0.0f),
                  .mass = 1.63e-6,
@@ -57,7 +60,8 @@ public:
     Body mars = {.position = glm::vec3(1.5, 0.0f, 0.0f),
                  .velocity = glm::vec3(0.0, 0.0139056311, 0.0f),
                  .mass = 3.213e-7,
-                 .color = {0.757f, 0.27f, 0.0549f}};
+                 .color = {0.757f, 0.27f, 0.0549f},
+                 .max_path = 10000};
     bodies.push_back(sun);
     bodies.push_back(mercury);
     bodies.push_back(venus);
@@ -109,7 +113,7 @@ public:
 
       body.draw_position = body.position * position_scale;
       body.path_3d.emplace_back(body.draw_position);
-      while (body.path_3d.size() > 2000) {
+      while (body.path_3d.size() > body.max_path) {
         body.path_3d.pop_front();
       }
     }
