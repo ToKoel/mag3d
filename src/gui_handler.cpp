@@ -188,8 +188,6 @@ void draw_2d_overlay(const std::vector<Body>& bodies, float& inset_scale) {
   const auto origin = ImVec2(canvas_pos.x + canvas_size.x * 0.5f,
                        canvas_pos.y + canvas_size.y * 0.5f);
 
-
-
   for (const auto& body : bodies) {
     if (body.path_3d.size() < 2) continue;
     if (glm::length(body.path_3d.back() - body.path_3d.front()) < 1e-3f) {
@@ -265,7 +263,7 @@ void GuiHandler::start_main_loop() {
       }
       auto model = glm::translate(glm::mat4(1.0f), body.draw_position);
       model = glm::scale(model,
-        glm::vec3(static_cast<float>(std::min(body.mass * 100000.0, 0.5))));
+        glm::vec3(static_cast<float>(std::min(body.mass * 50000.0, 0.2))));
 
       auto mvp = camera.get_vp_matrix(static_cast<float>(window_width),
                                        static_cast<float>(window_height)) * model;
@@ -294,6 +292,8 @@ void GuiHandler::start_main_loop() {
 
       glEnableVertexAttribArray(0);
       glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+      glUniform3f(glGetUniformLocation(path_program_id, "objectColor"), body.color.r, body.color.g,
+                  body.color.b);
       glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(path_vec.size()));
       glDisableVertexAttribArray(0);
     }
