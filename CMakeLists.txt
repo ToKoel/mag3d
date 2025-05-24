@@ -50,10 +50,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glm)
 
 add_executable(${PROJECT_NAME} src/main.cpp
-        src/FileLoader.cpp
-        src/FileLoader.h
-        src/solar_system.cpp
-        src/solar_system.h)
+        src/file_loader.cpp
+        src/file_loader.h
+        src/solar_system_calculator.cpp
+        src/solar_system_calculator.h
+        src/solar_system_graphics.cpp
+        src/solar_system_graphics.h)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
   ${imgui_SOURCE_DIR}
@@ -61,13 +63,15 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${glm_SOURCE_DIR}
 )
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/triangle.vert ${CMAKE_CURRENT_BINARY_DIR}/triangle.vert COPYONLY)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/triangle.frag ${CMAKE_CURRENT_BINARY_DIR}/triangle.frag COPYONLY)
+# configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/triangle.vert ${CMAKE_CURRENT_BINARY_DIR}/triangle.vert COPYONLY)
+# configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/triangle.frag ${CMAKE_CURRENT_BINARY_DIR}/triangle.frag COPYONLY)
 
 target_sources(${PROJECT_NAME} PRIVATE
     src/gui_handler.cpp
-    src/load_shader.cpp
+        src/file_loader.cpp
     src/camera.cpp
+        src/solar_system_calculator.cpp
+        src/solar_system_graphics.cpp
 ${imgui_SOURCE_DIR}/imgui.cpp
 ${imgui_SOURCE_DIR}/imgui_draw.cpp
 ${imgui_SOURCE_DIR}/imgui_tables.cpp
@@ -99,7 +103,7 @@ enable_testing()
 
 add_executable(file_loader_test
         test/test_file_loader.cpp
-        src/FileLoader.cpp
+        src/file_loader.cpp
         test/test_solar_system.cpp
 )
 
@@ -109,7 +113,7 @@ target_link_libraries(file_loader_test PRIVATE
 )
 
 target_sources(file_loader_test PRIVATE
-        src/FileLoader.cpp
+        src/file_loader.cpp
 )
 
 target_include_directories(file_loader_test PRIVATE

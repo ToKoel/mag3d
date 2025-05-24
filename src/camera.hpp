@@ -20,6 +20,9 @@ class Camera {
   int x_mouse = 0;
   int y_mouse = 0;
 
+  float window_width = 0;
+  float window_height = 0;
+
   float speed = 0.005f;
   float mouse_speed = 0.01f;
   bool dragging = false;
@@ -29,13 +32,13 @@ class Camera {
 
 public:
   void update_camera_directions(float, float, float);
-  [[nodiscard]] glm::mat4 get_vp_matrix(float, float) const;
+  [[nodiscard]] glm::mat4 get_vp_matrix() const;
   [[nodiscard]] glm::mat4 get_view_matrix() const;
-  [[nodiscard]] glm::mat4 get_projection_matrix(float, float) const;
+  [[nodiscard]] glm::mat4 get_projection_matrix() const;
   void update_field_of_view(bool);
   void update_field_of_view(Sint32);
   void update_camera_position(const Uint8 *, float);
-  void init(ImGuiIO* io);
+  void init(ImGuiIO* io, float, float);
   bool handle_events(float);
 
   float horizontal_angle = 3.14f;

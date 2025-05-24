@@ -6,8 +6,8 @@
 
 #include "imgui_impl_sdl2.h"
 
-glm::mat4 Camera::get_vp_matrix(const float window_width, const float window_height) const {
-  const glm::mat4 projection = get_projection_matrix(window_width, window_height);
+glm::mat4 Camera::get_vp_matrix() const {
+  const glm::mat4 projection = get_projection_matrix();
   const glm::mat4 view = get_view_matrix();
 
   return projection * view;
@@ -17,12 +17,14 @@ glm::mat4 Camera::get_view_matrix() const {
   return glm::lookAt(position, position + direction, up);
 }
 
-void Camera::init(ImGuiIO* io) {
+void Camera::init(ImGuiIO* io, const float window_width, const float window_height) {
+  this->window_width = window_width;
+  this->window_height = window_height;
   this->io = io;
   update_camera_directions(1.0, 1.0, 0.0);
 }
 
-glm::mat4 Camera::get_projection_matrix(const float window_width, const float window_height) const {
+glm::mat4 Camera::get_projection_matrix() const {
   return glm::perspective(
       glm::radians(field_of_view),
       window_width / window_height, 0.1f, 100.0f);

@@ -40,7 +40,8 @@ class FileLoader {
                std::span<glm::vec3> normal_buffer_data);
         public:
     static std::vector<ObjVertex> load_obj_file(std::string_view path);
-    static Shape get_shape(const std::string& path);
+    static Shape load_shape(const std::string& path);
+    static GLuint load_shaders(const char* vertex_shader, const char* fragment_shader);
 
 };
 

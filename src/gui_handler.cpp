@@ -6,17 +6,16 @@
 #include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <iostream>
 #include <span>
 
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl2.h"
-#include "load_shader.hpp"
 #include <SDL_opengl.h>
 
-#include "FileLoader.h"
-#include "solar_system.h"
+#include "file_loader.h"
+#include "solar_system_calculator.h"
+#include "solar_system_graphics.h"
 
 void GuiHandler::init() {
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) !=
@@ -81,24 +80,7 @@ void GuiHandler::init() {
   ImGui_ImplOpenGL3_Init(glsl_version);
   glEnable(GL_CULL_FACE);
 
-  camera.init(io);
-}
-
-bool SliderDouble(const char* label, double& value, const float min, const float max) {
-  auto temp = static_cast<float>(value);
-  const bool changed = ImGui::SliderFloat(label, &temp, min, max,"%.7f", ImGuiSliderFlags_Logarithmic);
-  if (changed) value = static_cast<double>(temp);
-  return changed;
-}
-
-void GuiHandler::draw_control_window(SolarSystem& solar_system) {
-  ImGui::Begin("Control");
-  SliderDouble("Sun mass", solar_system.bodies[0].mass, 0.01f, 100.0f);
-  SliderDouble("Earth mass", solar_system.bodies[1].mass, 0.0000001f, 1.0f);
-  ImGui::SliderFloat("Simulation time factor", &simulation_time_factor, 1.0, 1000000.0, "%.0f", ImGuiSliderFlags_Logarithmic);
-  ImGui::Checkbox("Pause", &paused);
-  ImGui::Text("Time: %.1f days", elapsed_simulation_time);
-  ImGui::End();
+  camera.init(io, static_cast<float>(window_width), static_cast<float>(window_height));
 }
 
 void GuiHandler::shutdown() const {
@@ -110,33 +92,6 @@ void GuiHandler::shutdown() const {
   SDL_DestroyWindow(window);
   SDL_Quit();
 }
-
-void draw_shape(const Shape shape, const GLuint program_id,const glm::vec3 color) {
-  constexpr auto number_of_vertices_per_triangle = 3;
-
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, shape.vertex_buffer_id);
-  glVertexAttribPointer(0, // attribute 0. No particular reason for 0, but
-                           // must match the layout in the shader.
-                        3, // size
-                        GL_FLOAT, // type
-                        GL_FALSE, // normalized?
-                        0,        // stride
-                        nullptr);
-
-  glEnableVertexAttribArray(1);
-  glBindBuffer(GL_ARRAY_BUFFER, shape.normal_buffer_id);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-  glUniform3f(glGetUniformLocation(program_id, "objectColor"), color.r, color.g,
-              color.b);
-
-  glDrawArrays(GL_TRIANGLES, 0,
-               shape.number_of_triangles * number_of_vertices_per_triangle);
-
-  glDisableVertexAttribArray(0);
-  glDisableVertexAttribArray(1);
-}
-
 
 glm::mat4 get_rotation_matrix(glm::vec3 direction) {
   glm::vec3 default_dir = glm::vec3(0.0f, 0.0f, 1.0f); // your model's default orientation
@@ -169,65 +124,14 @@ void GuiHandler::start_imgui_frame() {
   ImGui::NewFrame();
 }
 
-void draw_2d_overlay(const std::vector<Body>& bodies, float& inset_scale) {
-  ImGui::SetNextWindowSize(ImVec2(200, 200));
-  ImGui::SetNextWindowPos(ImVec2(10, 10)); // top-left corner
-  ImGui::Begin("Orbit View", nullptr,
-               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-               ImGuiWindowFlags_NoCollapse);
-
-  const ImVec2 canvas_pos = ImGui::GetCursorScreenPos();   // Top-left of drawing area
-  const ImVec2 canvas_size = ImGui::GetContentRegionAvail(); // Size of the window
-
-  ImDrawList* draw_list = ImGui::GetWindowDrawList();
-  draw_list->AddRectFilled(canvas_pos,
-  ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y),
-    IM_COL32(10, 10, 10, 255));
-
-  ImGui::SliderFloat("Scale", &inset_scale, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
-  const auto origin = ImVec2(canvas_pos.x + canvas_size.x * 0.5f,
-                       canvas_pos.y + canvas_size.y * 0.5f);
-
-  for (const auto& body : bodies) {
-    if (body.path_3d.size() < 2) continue;
-    if (glm::length(body.path_3d.back() - body.path_3d.front()) < 1e-3f) {
-      // Draw a dot if the path is too short or stationary
-      const glm::vec2 pos = body.path_3d.back();
-      auto point = ImVec2(origin.x + pos.x / inset_scale, origin.y - pos.y / inset_scale);
-      draw_list->AddCircleFilled(point, 2.0f, IM_COL32(body.color.r * 255, body.color.g * 255, body.color.b * 255, 255));
-    } else {
-      for (size_t i = 1; i < body.path_3d.size(); ++i) {
-        const glm::vec2 p0 = body.path_3d[i - 1];
-        const glm::vec2 p1 = body.path_3d[i];
-
-        auto point0 = ImVec2(origin.x + p0.x / inset_scale, origin.y - p0.y / inset_scale);
-        auto point1 = ImVec2(origin.x + p1.x / inset_scale, origin.y - p1.y / inset_scale);
-
-        auto fraction = static_cast<double>(body.path_3d.size() - i) / body.path_3d.size();
-        auto alpha = 255 * (1.0 - fraction);
-
-        draw_list->AddLine(point0, point1, IM_COL32(body.color.r * 255, body.color.g * 255, body.color.b * 255, alpha), 2.0f);
-      }
-    }
-  }
-  ImGui::End();
-}
 
 void GuiHandler::start_main_loop() {
-  const auto shape =
-      FileLoader::get_shape("../src/obj_files/sphere_centered_scaled.obj");
-  const GLuint program_id = load_shaders(
-      "../src/shaders/triangle.vert",
-      "../src/shaders/triangle.frag");
-  const GLuint path_program_id = load_shaders(
-    "../src/shaders/path.vert",
-    "../src/shaders/path.frag");
-  GLuint path_vbo;
-  glGenBuffers(1, &path_vbo);
 
-  SolarSystem solar_system;
-  solar_system.init();
-  glUseProgram(program_id);
+  SolarSystemCalculator solar_system_calculator;
+  solar_system_calculator.init();
+
+  SolarSystemGraphics solar_system_graphics(solar_system_calculator, camera);
+  solar_system_graphics.init();
 
   double delta_time_seconds = 0.0;
   now_time = SDL_GetPerformanceCounter();
@@ -251,56 +155,15 @@ void GuiHandler::start_main_loop() {
     }
 
     start_imgui_frame();
-    draw_control_window(solar_system);
-    draw_2d_overlay(solar_system.bodies, inset_scale);
 
-    for (auto& body : solar_system.bodies) {
-      glUseProgram(program_id);
-      glUniform1i(glGetUniformLocation(program_id, "isEmissive"), body.is_emitter ? 1 : 0);
-      glUniform3f(glGetUniformLocation(program_id, "lightColor"), 1.0f, 1.0f, 1.0f);
-      if (body.is_emitter) {
-        light_position = body.draw_position;
-      }
-      auto model = glm::translate(glm::mat4(1.0f), body.draw_position);
-      model = glm::scale(model,
-        glm::vec3(static_cast<float>(std::min(body.mass * 50000.0, 0.2))));
+    solar_system_graphics.draw_control_window();
+    solar_system_graphics.draw_orbit_view();
+    solar_system_graphics.draw_solar_system();
 
-      auto mvp = camera.get_vp_matrix(static_cast<float>(window_width),
-                                       static_cast<float>(window_height)) * model;
-      auto view = camera.get_view_matrix();
-      glUniformMatrix4fv(glGetUniformLocation(program_id, "MVP"), 1, GL_FALSE,
-                         &mvp[0][0]);
-      glUniformMatrix4fv(glGetUniformLocation(program_id, "V"), 1, GL_FALSE,
-                         &view[0][0]);
-      glUniformMatrix4fv(glGetUniformLocation(program_id, "M"), 1, GL_FALSE,
-                         &model[0][0]);
-      draw_shape(shape, program_id, body.color);
-    }
-
-    glUseProgram(path_program_id);
-    auto mvp = camera.get_vp_matrix(static_cast<float>(window_width),
-                                    static_cast<float>(window_height));
-    glUniformMatrix4fv(glGetUniformLocation(path_program_id, "MVP"), 1, GL_FALSE, &mvp[0][0]);
-
-    for (const auto& body : solar_system.bodies) {
-      if (body.path_3d.size() < 2) continue;
-
-      std::vector path_vec(body.path_3d.begin(), body.path_3d.end());
-      glBindBuffer(GL_ARRAY_BUFFER, path_vbo);
-      glBufferData(GL_ARRAY_BUFFER, path_vec.size() * sizeof(glm::vec3),
-                   path_vec.data(), GL_DYNAMIC_DRAW);
-
-      glEnableVertexAttribArray(0);
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-      glUniform3f(glGetUniformLocation(path_program_id, "objectColor"), body.color.r, body.color.g,
-                  body.color.b);
-      glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(path_vec.size()));
-      glDisableVertexAttribArray(0);
-    }
-
-    if (!paused) {
-      elapsed_simulation_time += static_cast<float>(delta_time_seconds) / 86400 * simulation_time_factor;
-      solar_system.update_bodies_verlet(static_cast<float>(delta_time_seconds) / 86400 * simulation_time_factor);
+    if (!solar_system_calculator.paused) {
+      const auto dt_days =static_cast<float>(delta_time_seconds) / 86400 * solar_system_calculator.simulation_time_factor;
+      solar_system_calculator.elapsed_simulation_time += dt_days;
+      solar_system_calculator.update_bodies_verlet(dt_days);
     }
 
     ImGui::Render();

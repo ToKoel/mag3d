@@ -22,10 +22,13 @@ struct Body {
   const std::size_t max_path = 5000;
 };
 
-class SolarSystem {
+class SolarSystemCalculator {
 public:
   std::vector<Body> bodies;
   const float position_scale = 2.0f;
+  double elapsed_simulation_time = 0.0;
+  float simulation_time_factor = 1000.0;
+  bool paused = false;
 
   void init();
   void update_bodies_verlet(float dt);

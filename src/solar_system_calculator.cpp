@@ -1,6 +1,6 @@
-#include "solar_system.h"
+#include "solar_system_calculator.h"
 
-void SolarSystem::init() {
+void SolarSystemCalculator::init() {
   const Body sun = {.position = glm::vec3(0),
                     .velocity = glm::vec3(0),
                     .mass = 1.0,
@@ -32,7 +32,7 @@ void SolarSystem::init() {
   bodies.push_back(mars);
 }
 
-void SolarSystem::compute_forces() {
+void SolarSystemCalculator::compute_forces() {
   for (auto &b : bodies)
     b.force = glm::vec3(0.0f);
 
@@ -52,7 +52,7 @@ void SolarSystem::compute_forces() {
   }
 }
 
-void SolarSystem::update_bodies_verlet(const float dt) {
+void SolarSystemCalculator::update_bodies_verlet(const float dt) {
   compute_forces();
 
   for (auto &body : bodies) {

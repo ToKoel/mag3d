@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "solar_system.h"
+#include "solar_system_calculator.h"
 #include "glm/glm.hpp"
 #include <vector>
 

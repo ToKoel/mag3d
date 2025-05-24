@@ -7,7 +7,7 @@
 
 #include "camera.hpp"
 #include "imgui.h"
-#include "solar_system.h"
+#include "solar_system_calculator.h"
 
 class GuiHandler {
   SDL_Window *window = nullptr;
@@ -15,8 +15,7 @@ class GuiHandler {
   SDL_GLContext gl_context = nullptr;
   Camera camera;
 
-  glm::vec3 light_position = glm::vec3(4.0f, 4.0f, 4.0f);
-  ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+  glm::vec3 light_position = glm::vec3(0.0);
   bool done{false};
   bool paused{false};
   uint64_t last_time{0};
@@ -27,10 +26,9 @@ class GuiHandler {
   bool dragging{false};
   uint32_t window_width{1028};
   uint32_t window_height{768};
-  float inset_scale = 0.3f;
+  float inset_scale = 0.05f;
 
   void shutdown() const;
-  void draw_control_window(SolarSystem&);
   static void start_imgui_frame();
 
 public:
