@@ -9,6 +9,51 @@ void SolarSystemGraphics::init() {
     planet_shape =
         FileLoader::load_shape("../src/obj_files/sphere_auto_smooth.obj");
     glGenBuffers(1, &path_vbo);
+
+    // The framebuffer, which regroups 0, 1, or more textures, and 0 or 1 depth buffer.
+    glGenFramebuffers(1, &scene_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo);
+
+    glGenTextures(1, &non_emissive_texture);
+    glBindTexture(GL_TEXTURE_2D,non_emissive_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_camera.window_width, m_camera.window_height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, non_emissive_texture, 0);
+
+    glGenTextures(1, &emissive_texture);
+    glBindTexture(GL_TEXTURE_2D, emissive_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_camera.window_width, m_camera.window_height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, emissive_texture, 0);
+
+    constexpr GLenum drawBuffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+    glDrawBuffers(2, drawBuffers);
+
+    // The depth buffer
+    glGenRenderbuffers(1, &depth_render_buffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_camera.window_width, m_camera.window_height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_render_buffer);
+
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        throw std::runtime_error("Framebuffer is not complete");
+
+
+    // The fullscreen quad's FBO
+    static constexpr GLfloat g_quad_vertex_buffer_data[] = {
+        -1.0f, -1.0f, 0.0f,
+         1.0f, -1.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f,
+         1.0f, -1.0f, 0.0f,
+         1.0f,  1.0f, 0.0f,
+    };
+
+    glGenBuffers(1, &quad_vertexbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
 }
 
 void SolarSystemGraphics::draw_planets(const glm::vec3 color) const {
@@ -48,7 +93,37 @@ void SolarSystemGraphics::draw_control_window() const {
 }
 
 
+void SolarSystemGraphics::render_texture() const {
+    texture_shader.use();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, emissive_texture);
+    texture_shader.setInt("emissive_texture", 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, non_emissive_texture);
+    texture_shader.setInt("non_emissive_texture", 1);
+
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+    glVertexAttribPointer(
+        0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+        3,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        nullptr            // array buffer offset
+    );
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDisableVertexAttribArray(0);
+}
+
 void SolarSystemGraphics::draw_solar_system() {
+    glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, m_camera.window_width, m_camera.window_height);
+
     planet_shader.use();
     planet_shader.setVec3("lightColor", glm::vec3(1.0f));
 
@@ -69,7 +144,6 @@ void SolarSystemGraphics::draw_solar_system() {
 
         draw_planets(body.color);
     }
-
     path_shader.use();
     const auto vp = m_camera.get_vp_matrix();
     path_shader.setMat4("VP", vp);
@@ -88,6 +162,9 @@ void SolarSystemGraphics::draw_solar_system() {
         glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(path_vec.size()));
         glDisableVertexAttribArray(0);
     }
+
+    glBindFramebuffer(GL_FRAMEBUFFER,0);
+    render_texture();
 }
 
 void SolarSystemGraphics::draw_orbit_view() {

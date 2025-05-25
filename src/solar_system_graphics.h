@@ -19,10 +19,17 @@ class SolarSystemGraphics {
 
     Shader planet_shader{planet_vertex_shader_path, planet_fragment_shader_path};
     Shader path_shader{path_vertex_shader_path, path_fragment_shader_path};
+    Shader texture_shader{"../src/shaders/passthrough.vert", "../src/shaders/texture.frag"};
 
     Shape planet_shape;
 
     GLuint path_vbo;
+    GLuint quad_vertexbuffer;
+    GLuint quad_vertexarray;
+    GLuint scene_fbo;
+    GLuint non_emissive_texture;
+    GLuint emissive_texture;
+    GLuint depth_render_buffer;
 
     float inset_scale{0.015};
 
@@ -30,6 +37,7 @@ class SolarSystemGraphics {
 
     void draw_planets(glm::vec3 color) const;
     void draw_paths();
+    void render_texture() const;
 
     public:
     SolarSystemGraphics(SolarSystemCalculator& calculator, Camera& camera) : m_calculator(calculator), m_camera(camera) {};
