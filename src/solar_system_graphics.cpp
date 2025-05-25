@@ -12,28 +12,22 @@ void SolarSystemGraphics::init() {
 }
 
 void SolarSystemGraphics::draw_planets(const glm::vec3 color) const {
-        constexpr auto number_of_vertices_per_triangle = 3;
+    constexpr auto number_of_vertices_per_triangle = 3;
 
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, planet_shape.vertex_buffer_id);
-        glVertexAttribPointer(0, // attribute 0. No particular reason for 0, but
-                                 // must match the layout in the shader.
-                              3, // size
-                              GL_FLOAT, // type
-                              GL_FALSE, // normalized?
-                              0,        // stride
-                              nullptr);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, planet_shape.vertex_buffer_id);
+    glVertexAttribPointer(0, 3,GL_FLOAT,GL_FALSE,0, nullptr);
 
-        glEnableVertexAttribArray(1);
-        glBindBuffer(GL_ARRAY_BUFFER, planet_shape.normal_buffer_id);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, planet_shape.normal_buffer_id);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
     planet_shader.setVec3("objectColor", color);
 
-        glDrawArrays(GL_TRIANGLES, 0,
-                     planet_shape.number_of_triangles * number_of_vertices_per_triangle);
+    glDrawArrays(GL_TRIANGLES, 0, planet_shape.number_of_triangles * number_of_vertices_per_triangle);
 
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
 }
 
 bool SliderDouble(const char* label, double& value, const float min, const float max) {
