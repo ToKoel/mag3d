@@ -8,12 +8,6 @@
 void SolarSystemGraphics::init() {
     planet_shape =
         FileLoader::load_shape("../src/obj_files/sphere_auto_smooth.obj");
-    planet_program = FileLoader::load_shaders(
-        "../src/shaders/planet.vert",
-        "../src/shaders/planet.frag");
-    path_program = FileLoader::load_shaders(
-      "../src/shaders/path.vert",
-      "../src/shaders/path.frag");
     glGenBuffers(1, &path_vbo);
 }
 
@@ -33,8 +27,7 @@ void SolarSystemGraphics::draw_planets(const glm::vec3 color) const {
         glEnableVertexAttribArray(1);
         glBindBuffer(GL_ARRAY_BUFFER, planet_shape.normal_buffer_id);
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-        glUniform3f(glGetUniformLocation(planet_program, "objectColor"), color.r, color.g,
-                    color.b);
+    planet_shader.setVec3("objectColor", color);
 
         glDrawArrays(GL_TRIANGLES, 0,
                      planet_shape.number_of_triangles * number_of_vertices_per_triangle);
@@ -62,32 +55,30 @@ void SolarSystemGraphics::draw_control_window() const {
 
 
 void SolarSystemGraphics::draw_solar_system() {
+    planet_shader.use();
+    planet_shader.setVec3("lightColor", glm::vec3(1.0f));
+
     for (auto& body : m_calculator.bodies) {
-        glUseProgram(planet_program);
-        glUniform1i(glGetUniformLocation(planet_program, "isEmissive"), body.is_emitter ? 1 : 0);
-        glUniform3f(glGetUniformLocation(planet_program, "lightColor"), 1.0f, 1.0f, 1.0f);
         if (body.is_emitter) {
             light_position = body.draw_position;
         }
         auto model = glm::translate(glm::mat4(1.0f), body.draw_position);
         model = glm::scale(model,
           glm::vec3(static_cast<float>(std::min(body.mass * 50000.0, 0.2))));
-
         auto mvp = m_camera.get_vp_matrix() * model;
         auto view = m_camera.get_view_matrix();
-        glUniformMatrix4fv(glGetUniformLocation(planet_program, "MVP"), 1, GL_FALSE,
-                           &mvp[0][0]);
-        glUniformMatrix4fv(glGetUniformLocation(planet_program, "V"), 1, GL_FALSE,
-                           &view[0][0]);
-        glUniformMatrix4fv(glGetUniformLocation(planet_program, "M"), 1, GL_FALSE,
-                           &model[0][0]);
+
+        planet_shader.setBool("isEmissive", body.is_emitter);
+        planet_shader.setMat4("MVP", mvp);
+        planet_shader.setMat4("V", view);
+        planet_shader.setMat4("M", model);
 
         draw_planets(body.color);
     }
 
-    glUseProgram(path_program);
-    auto mvp = m_camera.get_vp_matrix();
-    glUniformMatrix4fv(glGetUniformLocation(path_program, "MVP"), 1, GL_FALSE, &mvp[0][0]);
+    path_shader.use();
+    const auto vp = m_camera.get_vp_matrix();
+    path_shader.setMat4("VP", vp);
 
     for (const auto& body : m_calculator.bodies) {
         if (body.path_3d.size() < 2) continue;
@@ -99,8 +90,7 @@ void SolarSystemGraphics::draw_solar_system() {
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-        glUniform3f(glGetUniformLocation(path_program, "objectColor"), body.color.r, body.color.g,
-                    body.color.b);
+        path_shader.setVec3("objectColor", body.color);
         glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(path_vec.size()));
         glDisableVertexAttribArray(0);
     }

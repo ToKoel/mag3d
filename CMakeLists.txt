@@ -55,7 +55,9 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/solar_system_calculator.cpp
         src/solar_system_calculator.h
         src/solar_system_graphics.cpp
-        src/solar_system_graphics.h)
+        src/solar_system_graphics.h
+        src/shader.cpp
+        src/shader.h)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
   ${imgui_SOURCE_DIR}

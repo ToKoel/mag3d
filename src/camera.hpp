@@ -20,8 +20,6 @@ class Camera {
   int x_mouse = 0;
   int y_mouse = 0;
 
-  float window_width = 0;
-  float window_height = 0;
 
   float speed = 0.005f;
   float mouse_speed = 0.01f;
@@ -31,6 +29,8 @@ class Camera {
   ImGuiIO* io = nullptr;
 
 public:
+  float window_width = 0;
+  float window_height = 0;
   void update_camera_directions(float, float, float);
   [[nodiscard]] glm::mat4 get_vp_matrix() const;
   [[nodiscard]] glm::mat4 get_view_matrix() const;

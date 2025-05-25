@@ -5,6 +5,7 @@
 
 #include "camera.hpp"
 #include "file_loader.h"
+#include "shader.h"
 
 
 class SolarSystemGraphics {
@@ -16,9 +17,11 @@ class SolarSystemGraphics {
     const std::string path_vertex_shader_path = "../src/shaders/path.vert";
     const std::string planet_shape_path = "../src/obj_files/sphere_centered_scaled.obj";
 
-    GLuint planet_program;
-    GLuint path_program;
+    Shader planet_shader{planet_vertex_shader_path, planet_fragment_shader_path};
+    Shader path_shader{path_vertex_shader_path, path_fragment_shader_path};
+
     Shape planet_shape;
+
     GLuint path_vbo;
 
     float inset_scale{0.015};
