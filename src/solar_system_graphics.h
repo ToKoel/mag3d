@@ -16,28 +16,30 @@ class SolarSystemGraphics {
     const std::string path_fragment_shader_path = "../src/shaders/path.frag";
     const std::string path_vertex_shader_path = "../src/shaders/path.vert";
     const std::string planet_shape_path = "../src/obj_files/sphere_centered_scaled.obj";
+    const std::string passthrough_vertex_shader_path = "../src/shaders/passthrough.vert";
+    const std::string texture_fragment_shader_path = "../src/shaders/texture.frag";
 
     Shader planet_shader{planet_vertex_shader_path, planet_fragment_shader_path};
     Shader path_shader{path_vertex_shader_path, path_fragment_shader_path};
-    Shader texture_shader{"../src/shaders/passthrough.vert", "../src/shaders/texture.frag"};
+    Shader texture_shader{passthrough_vertex_shader_path, texture_fragment_shader_path};
 
-    Shape planet_shape;
+    Shape planet_shape = FileLoader::load_shape(planet_shape_path);
 
-    GLuint path_vbo;
-    GLuint quad_vbo;
-    GLuint quad_vao;
-    GLuint scene_fbo;
-    GLuint non_emissive_texture;
-    GLuint emissive_texture;
-    GLuint depth_render_buffer;
+    GLuint path_vbo = 0;
+    GLuint scene_fbo = 0;
+    GLuint non_emissive_texture = 0;
+    GLuint emissive_texture = 0;
+    GLuint depth_render_buffer = 0;
 
     float inset_scale{0.015};
 
     glm::vec3 light_position{0.0};
 
-    void draw_planets(glm::vec3 color) const;
-    void draw_paths();
+    void draw_planets();
+    void draw_paths() const;
     void render_texture() const;
+
+    static bool slider_double(const char* label, double& value, float min, float max);
 
     public:
     SolarSystemGraphics(SolarSystemCalculator& calculator, Camera& camera) : m_calculator(calculator), m_camera(camera) {};

@@ -5,15 +5,10 @@
 #include "imgui.h"
 #include <glm/gtc/type_ptr.hpp>
 
-void SolarSystemGraphics::init(int32_t width, int32_t height) {
-    // const auto width = m_camera.window_width;
-    // const auto height = m_camera.window_height;
+void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
     glViewport(0, 0, width, height);
-    planet_shape =
-        FileLoader::load_shape("../src/obj_files/sphere_auto_smooth.obj");
     glGenBuffers(1, &path_vbo);
 
-    // The framebuffer, which regroups 0, 1, or more textures, and 0 or 1 depth buffer.
     glGenFramebuffers(1, &scene_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo);
 
@@ -34,7 +29,6 @@ void SolarSystemGraphics::init(int32_t width, int32_t height) {
     constexpr GLenum drawBuffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
     glDrawBuffers(2, drawBuffers);
 
-    // The depth buffer
     glGenRenderbuffers(1, &depth_render_buffer);
     glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
@@ -44,26 +38,45 @@ void SolarSystemGraphics::init(int32_t width, int32_t height) {
         throw std::runtime_error("Framebuffer is not complete");
 }
 
-void SolarSystemGraphics::draw_planets(const glm::vec3 color) const {
-    constexpr auto number_of_vertices_per_triangle = 3;
+void SolarSystemGraphics::draw_planets() {
+    planet_shader.use();
+    planet_shader.setVec3("lightColor", glm::vec3(1.0f));
 
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, planet_shape.vertex_buffer_id);
-    glVertexAttribPointer(0, 3,GL_FLOAT,GL_FALSE,0, nullptr);
+    for (auto& body : m_calculator.bodies) {
+        if (body.is_emitter) {
+            light_position = body.draw_position;
+        }
+        auto model = glm::translate(glm::mat4(1.0f), body.draw_position);
+        model = glm::scale(model,
+          glm::vec3(static_cast<float>(std::min(body.mass * 50000.0, 0.2))));
+        auto mvp = m_camera.get_vp_matrix() * model;
+        auto view = m_camera.get_view_matrix();
 
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, planet_shape.normal_buffer_id);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        planet_shader.setBool("isEmissive", body.is_emitter);
+        planet_shader.setMat4("MVP", mvp);
+        planet_shader.setMat4("V", view);
+        planet_shader.setMat4("M", model);
 
-    planet_shader.setVec3("objectColor", color);
+        constexpr auto number_of_vertices_per_triangle = 3;
 
-    glDrawArrays(GL_TRIANGLES, 0, planet_shape.number_of_triangles * number_of_vertices_per_triangle);
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, planet_shape.vertex_buffer_id);
+        glVertexAttribPointer(0, 3,GL_FLOAT,GL_FALSE,0, nullptr);
 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
+        glEnableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, planet_shape.normal_buffer_id);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        planet_shader.setVec3("objectColor", body.color);
+
+        glDrawArrays(GL_TRIANGLES, 0, planet_shape.number_of_triangles * number_of_vertices_per_triangle);
+
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+    }
 }
 
-bool SliderDouble(const char* label, double& value, const float min, const float max) {
+bool SolarSystemGraphics::slider_double(const char* label, double& value, const float min, const float max) {
     auto temp = static_cast<float>(value);
     const bool changed = ImGui::SliderFloat(label, &temp, min, max,"%.7f", ImGuiSliderFlags_Logarithmic);
     if (changed) value = static_cast<double>(temp);
@@ -72,8 +85,8 @@ bool SliderDouble(const char* label, double& value, const float min, const float
 
 void SolarSystemGraphics::draw_control_window() const {
         ImGui::Begin("Control");
-        SliderDouble("Sun mass", m_calculator.bodies[0].mass, 0.01f, 100.0f);
-        SliderDouble("Earth mass", m_calculator.bodies[3].mass, 0.0000001f, 1.0f);
+        slider_double("Sun mass", m_calculator.bodies[0].mass, 0.01f, 100.0f);
+        slider_double("Earth mass", m_calculator.bodies[3].mass, 0.0000001f, 1.0f);
         ImGui::SliderFloat("Simulation time factor", &m_calculator.simulation_time_factor, 1.0, 1000000.0, "%.0f", ImGuiSliderFlags_Logarithmic);
         ImGui::Checkbox("Pause", &m_calculator.paused);
         ImGui::Text("Time: %.1f days", m_calculator.elapsed_simulation_time);
@@ -99,30 +112,7 @@ void SolarSystemGraphics::render_texture() const {
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
-void SolarSystemGraphics::draw_solar_system() {
-    glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    planet_shader.use();
-    planet_shader.setVec3("lightColor", glm::vec3(1.0f));
-
-    for (auto& body : m_calculator.bodies) {
-        if (body.is_emitter) {
-            light_position = body.draw_position;
-        }
-        auto model = glm::translate(glm::mat4(1.0f), body.draw_position);
-        model = glm::scale(model,
-          glm::vec3(static_cast<float>(std::min(body.mass * 50000.0, 0.2))));
-        auto mvp = m_camera.get_vp_matrix() * model;
-        auto view = m_camera.get_view_matrix();
-
-        planet_shader.setBool("isEmissive", body.is_emitter);
-        planet_shader.setMat4("MVP", mvp);
-        planet_shader.setMat4("V", view);
-        planet_shader.setMat4("M", model);
-
-        draw_planets(body.color);
-    }
+void SolarSystemGraphics::draw_paths() const {
     path_shader.use();
     const auto vp = m_camera.get_vp_matrix();
     path_shader.setMat4("VP", vp);
@@ -141,7 +131,14 @@ void SolarSystemGraphics::draw_solar_system() {
         glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(path_vec.size()));
         glDisableVertexAttribArray(0);
     }
+}
 
+void SolarSystemGraphics::draw_solar_system() {
+    glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    draw_planets();
+    draw_paths();
     render_texture();
 }
 
