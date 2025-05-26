@@ -40,10 +40,11 @@ void GuiHandler::init() {
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
   constexpr auto window_flags = static_cast<SDL_WindowFlags>(
-      SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+      SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);// | SDL_WINDOW_ALLOW_HIGHDPI);
+
 
   window =
-      SDL_CreateWindow("Mag3D", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+      SDL_CreateWindow("Solar system", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                        static_cast<std::int32_t>(window_width),
                        static_cast<std::int32_t>(window_height), window_flags);
   if (window == nullptr) {

@@ -6,9 +6,13 @@
 #include <glm/gtc/type_ptr.hpp>
 
 void SolarSystemGraphics::init() {
+    const auto width = m_camera.window_width;
+    const auto height = m_camera.window_height;
+    glViewport(0, 0, width, height);
     planet_shape =
         FileLoader::load_shape("../src/obj_files/sphere_auto_smooth.obj");
     glGenBuffers(1, &path_vbo);
+
 
     // The framebuffer, which regroups 0, 1, or more textures, and 0 or 1 depth buffer.
     glGenFramebuffers(1, &scene_fbo);
@@ -16,16 +20,16 @@ void SolarSystemGraphics::init() {
 
     glGenTextures(1, &non_emissive_texture);
     glBindTexture(GL_TEXTURE_2D,non_emissive_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_camera.window_width, m_camera.window_height, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,  GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, non_emissive_texture, 0);
 
     glGenTextures(1, &emissive_texture);
     glBindTexture(GL_TEXTURE_2D, emissive_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_camera.window_width, m_camera.window_height, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,  GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,  GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, emissive_texture, 0);
 
     constexpr GLenum drawBuffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
@@ -34,26 +38,11 @@ void SolarSystemGraphics::init() {
     // The depth buffer
     glGenRenderbuffers(1, &depth_render_buffer);
     glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_camera.window_width, m_camera.window_height);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_render_buffer);
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         throw std::runtime_error("Framebuffer is not complete");
-
-
-    // The fullscreen quad's FBO
-    static constexpr GLfloat g_quad_vertex_buffer_data[] = {
-        -1.0f, -1.0f, 0.0f,
-         1.0f, -1.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f,
-         1.0f, -1.0f, 0.0f,
-         1.0f,  1.0f, 0.0f,
-    };
-
-    glGenBuffers(1, &quad_vertexbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
 }
 
 void SolarSystemGraphics::draw_planets(const glm::vec3 color) const {
@@ -94,6 +83,8 @@ void SolarSystemGraphics::draw_control_window() const {
 
 
 void SolarSystemGraphics::render_texture() const {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, m_camera.window_width, m_camera.window_height);
     texture_shader.use();
 
     glActiveTexture(GL_TEXTURE0);
@@ -104,25 +95,14 @@ void SolarSystemGraphics::render_texture() const {
     glBindTexture(GL_TEXTURE_2D, non_emissive_texture);
     texture_shader.setInt("non_emissive_texture", 1);
 
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
-    glVertexAttribPointer(
-        0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-        3,                  // size
-        GL_FLOAT,           // type
-        GL_FALSE,           // normalized?
-        0,                  // stride
-        nullptr            // array buffer offset
-    );
+    texture_shader.setVec2("tex_size", glm::vec2(m_camera.window_width, m_camera.window_height));
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glDisableVertexAttribArray(0);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 void SolarSystemGraphics::draw_solar_system() {
     glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, m_camera.window_width, m_camera.window_height);
 
     planet_shader.use();
     planet_shader.setVec3("lightColor", glm::vec3(1.0f));
@@ -163,7 +143,6 @@ void SolarSystemGraphics::draw_solar_system() {
         glDisableVertexAttribArray(0);
     }
 
-    glBindFramebuffer(GL_FRAMEBUFFER,0);
     render_texture();
 }
 

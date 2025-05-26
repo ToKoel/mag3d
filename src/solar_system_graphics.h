@@ -24,8 +24,8 @@ class SolarSystemGraphics {
     Shape planet_shape;
 
     GLuint path_vbo;
-    GLuint quad_vertexbuffer;
-    GLuint quad_vertexarray;
+    GLuint quad_vbo;
+    GLuint quad_vao;
     GLuint scene_fbo;
     GLuint non_emissive_texture;
     GLuint emissive_texture;
