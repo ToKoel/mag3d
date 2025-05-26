@@ -5,14 +5,13 @@
 #include "imgui.h"
 #include <glm/gtc/type_ptr.hpp>
 
-void SolarSystemGraphics::init() {
-    const auto width = m_camera.window_width;
-    const auto height = m_camera.window_height;
+void SolarSystemGraphics::init(int32_t width, int32_t height) {
+    // const auto width = m_camera.window_width;
+    // const auto height = m_camera.window_height;
     glViewport(0, 0, width, height);
     planet_shape =
         FileLoader::load_shape("../src/obj_files/sphere_auto_smooth.obj");
     glGenBuffers(1, &path_vbo);
-
 
     // The framebuffer, which regroups 0, 1, or more textures, and 0 or 1 depth buffer.
     glGenFramebuffers(1, &scene_fbo);
@@ -21,8 +20,8 @@ void SolarSystemGraphics::init() {
     glGenTextures(1, &non_emissive_texture);
     glBindTexture(GL_TEXTURE_2D,non_emissive_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,  GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,  GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, non_emissive_texture, 0);
 
     glGenTextures(1, &emissive_texture);

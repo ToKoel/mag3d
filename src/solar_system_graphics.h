@@ -41,7 +41,7 @@ class SolarSystemGraphics {
 
     public:
     SolarSystemGraphics(SolarSystemCalculator& calculator, Camera& camera) : m_calculator(calculator), m_camera(camera) {};
-    void init();
+    void init(int32_t, int32_t);
     void draw_control_window() const;
     void draw_solar_system();
     void draw_orbit_view();

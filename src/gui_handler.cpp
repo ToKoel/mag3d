@@ -40,7 +40,7 @@ void GuiHandler::init() {
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
   constexpr auto window_flags = static_cast<SDL_WindowFlags>(
-      SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);// | SDL_WINDOW_ALLOW_HIGHDPI);
+      SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
 
   window =
@@ -82,7 +82,9 @@ void GuiHandler::init() {
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
 
-  camera.init(io, static_cast<float>(window_width), static_cast<float>(window_height));
+  int drawableWidth, drawableHeight;
+  SDL_GL_GetDrawableSize(window, &drawableWidth, &drawableHeight);
+  camera.init(io, static_cast<float>(drawableWidth), static_cast<float>(drawableHeight));
 }
 
 void GuiHandler::shutdown() const {
@@ -133,7 +135,9 @@ void GuiHandler::start_main_loop() {
   solar_system_calculator.init();
 
   SolarSystemGraphics solar_system_graphics(solar_system_calculator, camera);
-  solar_system_graphics.init();
+  int drawableWidth, drawableHeight;
+  SDL_GL_GetDrawableSize(window, &drawableWidth, &drawableHeight);
+  solar_system_graphics.init(drawableWidth, drawableHeight);
 
   double delta_time_seconds = 0.0;
   now_time = SDL_GetPerformanceCounter();
