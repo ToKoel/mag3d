@@ -36,6 +36,7 @@ void OpenGLUtils::draw_triangle_faces(const GLsizei number_of_triangles) {
     glDrawArrays(GL_TRIANGLES, 0, number_of_triangles * number_of_vertices);
 }
 
+
 void OpenGLUtils::disable_array_buffer(const GLuint index) {
     glDisableVertexAttribArray(index);
 }

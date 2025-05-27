@@ -6,6 +6,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "OpenGLUtils.h"
+#include "ScopedArrayBuffer.h"
 
 void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
     glViewport(0, 0, width, height);
@@ -59,6 +60,9 @@ void SolarSystemGraphics::draw_planets() {
     planet_shader.use();
     planet_shader.setVec3("lightColor", glm::vec3(1.0f));
 
+    const auto view = m_camera.get_view_matrix();
+    const auto vp = m_camera.get_vp_matrix();
+
     for (auto& body : m_calculator.bodies) {
         if (body.is_emitter) {
             light_position = body.draw_position;
@@ -67,8 +71,7 @@ void SolarSystemGraphics::draw_planets() {
         auto model = glm::translate(glm::mat4(1.0f), body.draw_position);
         model = glm::scale(model,
           glm::vec3(static_cast<float>(std::min(body.mass * 50000.0, 0.2))));
-        auto mvp = m_camera.get_vp_matrix() * model;
-        auto view = m_camera.get_view_matrix();
+        auto mvp = vp * model;
 
         planet_shader.setBool("isEmissive", body.is_emitter);
         planet_shader.setMat4("MVP", mvp);
@@ -77,11 +80,10 @@ void SolarSystemGraphics::draw_planets() {
         planet_shader.setBool("selected", &body == m_selected_body);
         planet_shader.setVec3("objectColor", body.color);
 
-        OpenGLUtils::bind_array_buffer(0, planet_shape.vertex_buffer_id);
-        OpenGLUtils::bind_array_buffer(1, planet_shape.normal_buffer_id);
+        ScopedArrayBuffer vertex_buffer{0, planet_shape.vertex_buffer_id};
+        ScopedArrayBuffer normal_buffer{1, planet_shape.normal_buffer_id};
+
         OpenGLUtils::draw_triangle_faces(planet_shape.number_of_triangles);
-        OpenGLUtils::disable_array_buffer(0);
-        OpenGLUtils::disable_array_buffer(1);
     }
 }
 
@@ -125,9 +127,8 @@ void SolarSystemGraphics::draw_paths() const {
         path_shader.setVec3("objectColor", body.color);
 
         std::vector path_vec(body.path_3d.begin(), body.path_3d.end());
-        OpenGLUtils::bind_array_buffer_with_data(0,path_vbo, path_vec);
+        ScopedArrayBuffer path{0, path_vbo, path_vec};
         glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(path_vec.size()));
-        OpenGLUtils::disable_array_buffer(0);
     }
 }
 
