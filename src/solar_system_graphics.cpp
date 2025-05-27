@@ -5,6 +5,8 @@
 #include "imgui.h"
 #include <glm/gtc/type_ptr.hpp>
 
+#include "OpenGLUtils.h"
+
 void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
     glViewport(0, 0, width, height);
     glGenBuffers(1, &path_vbo);
@@ -12,22 +14,10 @@ void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
     glGenFramebuffers(1, &scene_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo);
 
-    glGenTextures(1, &non_emissive_texture);
-    glBindTexture(GL_TEXTURE_2D,non_emissive_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,  GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, non_emissive_texture, 0);
-
-    glGenTextures(1, &emissive_texture);
-    glBindTexture(GL_TEXTURE_2D, emissive_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,  GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,  GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, emissive_texture, 0);
-
     constexpr GLenum drawBuffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
     glDrawBuffers(2, drawBuffers);
+    textures.push_back(OpenGLUtils::setup_texture("non_emissive_texture", non_emissive_texture, width, height, drawBuffers[0], GL_TEXTURE0));
+    textures.push_back(OpenGLUtils::setup_texture("emissive_texture", emissive_texture, width, height, drawBuffers[1], GL_TEXTURE1));
 
     glGenRenderbuffers(1, &depth_render_buffer);
     glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer);
@@ -85,23 +75,13 @@ void SolarSystemGraphics::draw_planets() {
         planet_shader.setMat4("V", view);
         planet_shader.setMat4("M", model);
         planet_shader.setBool("selected", &body == m_selected_body);
-
-        constexpr auto number_of_vertices_per_triangle = 3;
-
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, planet_shape.vertex_buffer_id);
-        glVertexAttribPointer(0, 3,GL_FLOAT,GL_FALSE,0, nullptr);
-
-        glEnableVertexAttribArray(1);
-        glBindBuffer(GL_ARRAY_BUFFER, planet_shape.normal_buffer_id);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
         planet_shader.setVec3("objectColor", body.color);
 
-        glDrawArrays(GL_TRIANGLES, 0, planet_shape.number_of_triangles * number_of_vertices_per_triangle);
-
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
+        OpenGLUtils::bind_array_buffer(0, planet_shape.vertex_buffer_id);
+        OpenGLUtils::bind_array_buffer(1, planet_shape.normal_buffer_id);
+        OpenGLUtils::draw_triangle_faces(planet_shape.number_of_triangles);
+        OpenGLUtils::disable_array_buffer(0);
+        OpenGLUtils::disable_array_buffer(1);
     }
 }
 
@@ -122,23 +102,17 @@ void SolarSystemGraphics::draw_control_window() const {
         ImGui::End();
 }
 
-
 void SolarSystemGraphics::render_texture() const {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, m_camera.window_width, m_camera.window_height);
+    OpenGLUtils::use_main_framebuffer();
     texture_shader.use();
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, emissive_texture);
-    texture_shader.setInt("emissive_texture", 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, non_emissive_texture);
-    texture_shader.setInt("non_emissive_texture", 1);
+    for (const auto&[target, position, texture_id, name]: textures) {
+        OpenGLUtils::bind_texture(target, texture_id);
+        texture_shader.setInt(name, position);
+    }
 
     texture_shader.setVec2("tex_size", glm::vec2(m_camera.window_width, m_camera.window_height));
-
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    OpenGLUtils::draw_triangle_faces(1);
 }
 
 void SolarSystemGraphics::draw_paths() const {
@@ -148,17 +122,12 @@ void SolarSystemGraphics::draw_paths() const {
 
     for (const auto& body : m_calculator.bodies) {
         if (body.path_3d.size() < 2) continue;
+        path_shader.setVec3("objectColor", body.color);
 
         std::vector path_vec(body.path_3d.begin(), body.path_3d.end());
-        glBindBuffer(GL_ARRAY_BUFFER, path_vbo);
-        glBufferData(GL_ARRAY_BUFFER, path_vec.size() * sizeof(glm::vec3),
-                     path_vec.data(), GL_DYNAMIC_DRAW);
-
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-        path_shader.setVec3("objectColor", body.color);
+        OpenGLUtils::bind_array_buffer_with_data(0,path_vbo, path_vec);
         glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(path_vec.size()));
-        glDisableVertexAttribArray(0);
+        OpenGLUtils::disable_array_buffer(0);
     }
 }
 

@@ -5,6 +5,7 @@
 
 #include "camera.hpp"
 #include "file_loader.h"
+#include "OpenGLUtils.h"
 #include "shader.h"
 
 
@@ -12,6 +13,7 @@ class SolarSystemGraphics {
     SolarSystemCalculator& m_calculator;
     Camera& m_camera;
     Body* m_selected_body = nullptr;
+    std::vector<Texture> textures;
     const std::string planet_fragment_shader_path = "../src/shaders/planet.frag";
     const std::string planet_vertex_shader_path = "../src/shaders/planet.vert";
     const std::string path_fragment_shader_path = "../src/shaders/path.frag";
