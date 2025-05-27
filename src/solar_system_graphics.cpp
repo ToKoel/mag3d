@@ -38,6 +38,33 @@ void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
         throw std::runtime_error("Framebuffer is not complete");
 }
 
+bool ray_sphere_intersect(const glm::vec3 ray_origin, const glm::vec3 ray_dir, const glm::vec3 sphere_center, const float radius) {
+    const glm::vec3 oc = ray_origin - sphere_center;
+    const float a = glm::dot(ray_dir, ray_dir); // usually 1.0
+    const float b = 2.0f * glm::dot(oc, ray_dir);
+    const float c = glm::dot(oc, oc) - radius * radius;
+
+    const float discriminant = b * b - 4.0f * a * c;
+    return discriminant >= 0.0f;
+}
+
+void SolarSystemGraphics::check_selection() {
+    if (m_camera.current_mouse_ray != glm::vec3(0.0)) {
+        bool found = false;
+        for (auto& body : m_calculator.bodies) {
+            if (ray_sphere_intersect(m_camera.position, m_camera.current_mouse_ray, body.draw_position, 0.2)){
+                m_selected_body = &body;
+                found = true;
+            }
+        }
+        if (!found) {
+            m_selected_body = nullptr;
+        }
+    }
+    m_camera.current_mouse_ray = glm::vec3(0.0);
+}
+
+
 void SolarSystemGraphics::draw_planets() {
     planet_shader.use();
     planet_shader.setVec3("lightColor", glm::vec3(1.0f));
@@ -46,6 +73,7 @@ void SolarSystemGraphics::draw_planets() {
         if (body.is_emitter) {
             light_position = body.draw_position;
         }
+
         auto model = glm::translate(glm::mat4(1.0f), body.draw_position);
         model = glm::scale(model,
           glm::vec3(static_cast<float>(std::min(body.mass * 50000.0, 0.2))));
@@ -56,6 +84,7 @@ void SolarSystemGraphics::draw_planets() {
         planet_shader.setMat4("MVP", mvp);
         planet_shader.setMat4("V", view);
         planet_shader.setMat4("M", model);
+        planet_shader.setBool("selected", &body == m_selected_body);
 
         constexpr auto number_of_vertices_per_triangle = 3;
 
@@ -137,6 +166,7 @@ void SolarSystemGraphics::draw_solar_system() {
     glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    check_selection();
     draw_planets();
     draw_paths();
     render_texture();

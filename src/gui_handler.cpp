@@ -84,7 +84,8 @@ void GuiHandler::init() {
 
   int drawableWidth, drawableHeight;
   SDL_GL_GetDrawableSize(window, &drawableWidth, &drawableHeight);
-  camera.init(io, static_cast<float>(drawableWidth), static_cast<float>(drawableHeight));
+  const float scale_factor = drawableWidth / static_cast<float>(window_width);
+  camera.init(io, static_cast<float>(drawableWidth), static_cast<float>(drawableHeight), scale_factor);
 }
 
 void GuiHandler::shutdown() const {

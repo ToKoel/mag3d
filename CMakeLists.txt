@@ -107,20 +107,33 @@ add_executable(file_loader_test
         test/test_file_loader.cpp
         src/file_loader.cpp
         test/test_solar_system.cpp
+        test/test_camera.cpp
 )
 
 target_link_libraries(file_loader_test PRIVATE
         GTest::gtest_main
+        SDL2::SDL2
         ${OpenGL_LIBRARY}
 )
 
 target_sources(file_loader_test PRIVATE
         src/file_loader.cpp
+        src/solar_system_calculator.cpp
+        src/camera.cpp
+        ${imgui_SOURCE_DIR}/imgui.cpp
+        ${imgui_SOURCE_DIR}/imgui_draw.cpp
+        ${imgui_SOURCE_DIR}/imgui_tables.cpp
+        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+        ${imgui_SOURCE_DIR}/imgui_demo.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
 target_include_directories(file_loader_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${glm_SOURCE_DIR}
+        ${imgui_SOURCE_DIR}
+        ${imgui_SOURCE_DIR}/backends
 )
 
 include(GoogleTest)

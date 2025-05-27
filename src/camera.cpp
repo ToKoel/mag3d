@@ -18,9 +18,10 @@ glm::mat4 Camera::get_view_matrix() const {
   return glm::lookAt(position, position + direction, up);
 }
 
-void Camera::init(ImGuiIO* io, const float window_width, const float window_height) {
+void Camera::init(ImGuiIO* io, const float window_width, const float window_height, const float scale_factor) {
   this->window_width = window_width;
   this->window_height = window_height;
+  this->high_dpi_scale_factor = scale_factor;
   this->io = io;
   update_camera_directions(1.0, 1.0, 0.0);
 }
@@ -81,6 +82,8 @@ bool Camera::handle_events(const float delta_time) {
         event.button.button == SDL_BUTTON_LEFT) {
       dragging = false;
       SDL_SetRelativeMouseMode(SDL_FALSE);
+      SDL_GetMouseState(&x_mouse,&y_mouse);
+      current_mouse_ray = get_ray_from_mouse();
         }
 
     if (event.type == SDL_MOUSEMOTION && dragging) {
@@ -119,6 +122,36 @@ void Camera::update_camera_position(const Uint8* keyboardState,
     target -= offset;
   }
 }
+
+glm::vec3 Camera::get_direction() const {
+  return direction;
+}
+
+
+glm::vec3 Camera::get_ray_from_mouse() const {
+  const auto projection = get_projection_matrix();
+  const auto view = get_view_matrix();
+
+  const auto mouse_x = x_mouse * high_dpi_scale_factor;
+  const auto mouse_y = y_mouse * high_dpi_scale_factor;
+
+  // 2. Convert SDL Y to OpenGL Y (origin is at bottom-left in OpenGL)
+  const int ogl_mouse_y = window_height - mouse_y;
+
+  const auto viewport = glm::vec4(0.0,0.0,window_width,window_height);
+
+  // 3. Construct screen-space positions
+  const glm::vec3 screen_pos_near(mouse_x, ogl_mouse_y, 0.0f); // z = 0 -> near plane
+  const glm::vec3 screen_pos_far (mouse_x, ogl_mouse_y, 1.0f); // z = 1 -> far plane
+
+  // 4. Unproject to world space
+  const glm::vec3 ray_origin    = glm::unProject(screen_pos_near, view, projection, viewport);
+  const glm::vec3 ray_target    = glm::unProject(screen_pos_far,  view, projection, viewport);
+
+  // 5. Ray direction
+  return glm::normalize(ray_target - ray_origin);
+}
+
 
 void Camera::update_field_of_view(const Sint32 wheel_pos) {
   if (wheel_pos > 0) {

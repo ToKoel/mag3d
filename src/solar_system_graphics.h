@@ -11,11 +11,12 @@
 class SolarSystemGraphics {
     SolarSystemCalculator& m_calculator;
     Camera& m_camera;
+    Body* m_selected_body = nullptr;
     const std::string planet_fragment_shader_path = "../src/shaders/planet.frag";
     const std::string planet_vertex_shader_path = "../src/shaders/planet.vert";
     const std::string path_fragment_shader_path = "../src/shaders/path.frag";
     const std::string path_vertex_shader_path = "../src/shaders/path.vert";
-    const std::string planet_shape_path = "../src/obj_files/sphere_centered_scaled.obj";
+    const std::string planet_shape_path = "../src/obj_files/sphere_auto_smooth.obj";
     const std::string passthrough_vertex_shader_path = "../src/shaders/passthrough.vert";
     const std::string texture_fragment_shader_path = "../src/shaders/texture.frag";
 
@@ -38,6 +39,7 @@ class SolarSystemGraphics {
     void draw_planets();
     void draw_paths() const;
     void render_texture() const;
+    void check_selection();
 
     static bool slider_double(const char* label, double& value, float min, float max);
 
