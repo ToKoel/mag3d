@@ -42,6 +42,7 @@ class SolarSystemGraphics {
     void draw_paths() const;
     void render_texture() const;
     void check_selection();
+    void render_info() const;
 
     static bool slider_double(const char* label, double& value, float min, float max);
 

@@ -132,6 +132,16 @@ void SolarSystemGraphics::draw_paths() const {
     }
 }
 
+void SolarSystemGraphics::render_info() const {
+    if (!m_selected_body) return;
+
+    ImGui::Begin("Planet info");
+    ImGui::Text("Name: %s", m_selected_body->name.c_str());
+    ImGui::Text("Distance from sun (AU): %.2f", glm::length(m_selected_body->position));
+    ImGui::Text("Orbital velocity (AU/day): %.5f, %.5f, %.5f", m_selected_body->velocity.x, m_selected_body->velocity.y, m_selected_body->velocity.z);
+    ImGui::End();
+}
+
 void SolarSystemGraphics::draw_solar_system() {
     glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -140,6 +150,7 @@ void SolarSystemGraphics::draw_solar_system() {
     draw_planets();
     draw_paths();
     render_texture();
+    render_info();
 }
 
 void SolarSystemGraphics::draw_orbit_view() {

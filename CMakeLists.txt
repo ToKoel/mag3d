@@ -109,7 +109,7 @@ enable_testing()
 add_executable(file_loader_test
         test/test_file_loader.cpp
         src/file_loader.cpp
-        test/test_solar_system.cpp
+        test/test_solar_system_calculator.cpp
         test/test_camera.cpp
         src/OpenGLUtils.cpp
         src/OpenGLUtils.h
