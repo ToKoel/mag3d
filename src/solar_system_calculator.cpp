@@ -93,7 +93,7 @@ void SolarSystemCalculator::compute_forces() {
 }
 
 void SolarSystemCalculator::update_bodies_verlet(const float dt) {
-  compute_forces();
+    compute_forces();
 
   for (auto &body : bodies) {
     glm::vec3 acceleration = body.force / static_cast<float>(body.mass);
