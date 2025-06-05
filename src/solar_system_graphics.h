@@ -5,7 +5,7 @@
 
 #include "camera.hpp"
 #include "file_loader.h"
-#include "OpenGLUtils.h"
+#include "opengl_utils.h"
 #include "shader.h"
 
 

@@ -2,10 +2,8 @@
 
 void SolarSystemCalculator::init() {
   const std::unordered_map<std::string, float> orbit_inclinations{
-      {"Mercury", glm::radians(7.004f)},
-      {"Venus", glm::radians(3.395f)},
-      {"Earth", glm::radians(0.0f)},
-      {"Moon", glm::radians(5.145f)},
+      {"Mercury", glm::radians(7.004f)}, {"Venus", glm::radians(3.395f)},
+      {"Earth", glm::radians(0.0f)},     {"Moon", glm::radians(5.145f)},
       {"Mars", glm::radians(1.848f)},
   };
   const Body sun = {.position = glm::vec3(0),
@@ -40,23 +38,7 @@ void SolarSystemCalculator::init() {
       .mass = 2e-6,
       .color = {0.4196f, 0.57647f, 0.83921f},
       .name = "Earth"};
-
-
-    // 1. Relative moon position (e.g., ~384,400 km = 0.00257 AU) from Earth:
-    glm::vec3 r_rel = glm::vec3(0.000257f, 0.0f, 0.0f); // position relative to Earth
-    float v_moon = 0.00090f;
-    glm::vec3 moon_velocity_rel = glm::vec3(0.0f, v_moon, 0.0f);
-
-    glm::vec3 moon_velocity = earth.velocity + moon_velocity_rel;
-
-
-    const Body moon = {
-        .position = earth.position + r_rel,
-        .velocity = earth.velocity  + moon_velocity_rel,
-        .mass = 3.69312755e-8,
-        .color = {0.2f, 0.2f, 0.2f},
-        .name = "Moon"};
-    const Body mars = {.position = glm::vec3(1.5, 0.0f, 0.0f),
+  const Body mars = {.position = glm::vec3(1.5, 0.0f, 0.0f),
                      .velocity = glm::vec3(
                          0.0, 0.0139056311 * cos(orbit_inclinations.at("Mars")),
                          0.0139056311 * sin(orbit_inclinations.at("Mars"))),
@@ -68,7 +50,6 @@ void SolarSystemCalculator::init() {
   bodies.push_back(mercury);
   bodies.push_back(venus);
   bodies.push_back(earth);
-  //bodies.push_back(moon);
   bodies.push_back(mars);
 }
 
@@ -93,15 +74,12 @@ void SolarSystemCalculator::compute_forces() {
 }
 
 void SolarSystemCalculator::update_bodies_verlet(const float dt) {
-    compute_forces();
+  compute_forces();
 
   for (auto &body : bodies) {
     glm::vec3 acceleration = body.force / static_cast<float>(body.mass);
 
-    // Store current acceleration for velocity update later
     body.prev_acceleration = acceleration;
-
-    // Update position
     body.position += body.velocity * dt + 0.5f * acceleration * dt * dt;
   }
 
@@ -110,14 +88,8 @@ void SolarSystemCalculator::update_bodies_verlet(const float dt) {
   for (auto &body : bodies) {
     glm::vec3 new_acceleration = body.force / static_cast<float>(body.mass);
 
-    // Update velocity using average of old and new acceleration
     body.velocity += 0.5f * (body.prev_acceleration + new_acceleration) * dt;
-
-      if (body.name == "Moon") {
-          body.draw_position = body.position * position_scale * 1.1f;
-      } else {
-          body.draw_position = body.position * position_scale;
-      }
+    body.draw_position = body.position * position_scale;
     body.path_3d.emplace_back(body.draw_position);
     while (body.path_3d.size() > body.max_path) {
       body.path_3d.pop_front();

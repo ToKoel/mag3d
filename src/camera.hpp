@@ -39,7 +39,6 @@ public:
   [[nodiscard]] glm::mat4 get_vp_matrix() const;
   [[nodiscard]] glm::mat4 get_view_matrix() const;
   [[nodiscard]] glm::mat4 get_projection_matrix() const;
-  void update_field_of_view(bool);
   void update_field_of_view(Sint32);
   void update_camera_position(const Uint8 *, float);
   void init(ImGuiIO* io, float, float, float);

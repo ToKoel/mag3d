@@ -10,19 +10,17 @@ void main(){
     vec2 uv = gl_FragCoord.xy / tex_size;
     vec3 base = texture(non_emissive_texture, uv).rgb;
 
-
    float offset = 1.0 / 200.0; // smaller = sharper glow
     vec3 glow = vec3(0.0);
 
-    // Sample a 3x3 grid around the current pixel
-    for (int x = -1; x <= 1; ++x) {
-        for (int y = -1; y <= 1; ++y) {
+    for (int x = -2; x <= 2; ++x) {
+        for (int y = -2; y <= 2; ++y) {
             vec2 offset_uv = gl_FragCoord.xy/tex_size + vec2(x, y) * offset;
             glow += texture(emissive_texture, offset_uv).rgb;
         }
     }
 
-    glow /= 9.0; // average
+    glow /= 25.0;
 
     vec3 color = base + glow;
 

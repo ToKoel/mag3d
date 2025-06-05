@@ -5,31 +5,27 @@
 #include "imgui.h"
 #include <glm/gtc/type_ptr.hpp>
 
-#include "OpenGLUtils.h"
-#include "ScopedArrayBuffer.h"
+#include "opengl_utils.h"
+#include "scoped_array_buffer.h"
 
 void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
-    glViewport(0, 0, width, height);
-    glGenBuffers(1, &path_vbo);
+    OpenGLUtils::set_viewport(width, height);
 
-    glGenFramebuffers(1, &scene_fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo);
+    path_vbo = OpenGLUtils::create_buffer();
+    scene_fbo = OpenGLUtils::create_framebuffer();
 
-    constexpr GLenum drawBuffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-    glDrawBuffers(2, drawBuffers);
-    textures.push_back(OpenGLUtils::setup_texture("non_emissive_texture", non_emissive_texture, width, height, drawBuffers[0], GL_TEXTURE0));
-    textures.push_back(OpenGLUtils::setup_texture("emissive_texture", emissive_texture, width, height, drawBuffers[1], GL_TEXTURE1));
+    const auto draw_buffers = OpenGLUtils::create_draw_buffers(2);
+    textures.push_back(OpenGLUtils::setup_texture("non_emissive_texture", non_emissive_texture, width, height,
+                                                  draw_buffers[0], GL_TEXTURE0));
+    textures.push_back(OpenGLUtils::setup_texture("emissive_texture", emissive_texture, width, height, draw_buffers[1],
+                                                  GL_TEXTURE1));
 
-    glGenRenderbuffers(1, &depth_render_buffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, depth_render_buffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_render_buffer);
-
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        throw std::runtime_error("Framebuffer is not complete");
+    depth_render_buffer = OpenGLUtils::create_render_buffer(width, height);
+    OpenGLUtils::check_buffer();
 }
 
-bool ray_sphere_intersect(const glm::vec3 ray_origin, const glm::vec3 ray_dir, const glm::vec3 sphere_center, const float radius) {
+bool ray_sphere_intersect(const glm::vec3 ray_origin, const glm::vec3 ray_dir, const glm::vec3 sphere_center,
+                          const float radius) {
     const glm::vec3 oc = ray_origin - sphere_center;
     const float a = glm::dot(ray_dir, ray_dir); // usually 1.0
     const float b = 2.0f * glm::dot(oc, ray_dir);
@@ -42,8 +38,8 @@ bool ray_sphere_intersect(const glm::vec3 ray_origin, const glm::vec3 ray_dir, c
 void SolarSystemGraphics::check_selection() {
     if (m_camera.current_mouse_ray != glm::vec3(0.0)) {
         bool found = false;
-        for (auto& body : m_calculator.bodies) {
-            if (ray_sphere_intersect(m_camera.position, m_camera.current_mouse_ray, body.draw_position, 0.2)){
+        for (auto &body: m_calculator.bodies) {
+            if (ray_sphere_intersect(m_camera.position, m_camera.current_mouse_ray, body.draw_position, 0.2)) {
                 m_selected_body = &body;
                 found = true;
             }
@@ -63,14 +59,14 @@ void SolarSystemGraphics::draw_planets() {
     const auto view = m_camera.get_view_matrix();
     const auto vp = m_camera.get_vp_matrix();
 
-    for (auto& body : m_calculator.bodies) {
+    for (auto &body: m_calculator.bodies) {
         if (body.is_emitter) {
             light_position = body.draw_position;
         }
 
         auto model = glm::translate(glm::mat4(1.0f), body.draw_position);
         model = glm::scale(model,
-          glm::vec3(static_cast<float>(std::min(body.mass * 50000.0, 0.2))));
+                           glm::vec3(static_cast<float>(std::min(body.mass * 50000.0, 0.2))));
         auto mvp = vp * model;
 
         planet_shader.setBool("isEmissive", body.is_emitter);
@@ -87,28 +83,29 @@ void SolarSystemGraphics::draw_planets() {
     }
 }
 
-bool SolarSystemGraphics::slider_double(const char* label, double& value, const float min, const float max) {
+bool SolarSystemGraphics::slider_double(const char *label, double &value, const float min, const float max) {
     auto temp = static_cast<float>(value);
-    const bool changed = ImGui::SliderFloat(label, &temp, min, max,"%.7f", ImGuiSliderFlags_Logarithmic);
+    const bool changed = ImGui::SliderFloat(label, &temp, min, max, "%.7f", ImGuiSliderFlags_Logarithmic);
     if (changed) value = static_cast<double>(temp);
     return changed;
 }
 
 void SolarSystemGraphics::draw_control_window() const {
-        ImGui::Begin("Control");
-        slider_double("Sun mass", m_calculator.bodies[0].mass, 0.01f, 100.0f);
-        slider_double("Earth mass", m_calculator.bodies[3].mass, 0.0000001f, 1.0f);
-        ImGui::SliderFloat("Simulation time factor", &m_calculator.simulation_time_factor, 1.0, 1000000.0, "%.0f", ImGuiSliderFlags_Logarithmic);
-        ImGui::Checkbox("Pause", &m_calculator.paused);
-        ImGui::Text("Time: %.1f days", m_calculator.elapsed_simulation_time);
-        ImGui::End();
+    ImGui::Begin("Control");
+    slider_double("Sun mass", m_calculator.bodies[0].mass, 0.01f, 100.0f);
+    slider_double("Earth mass", m_calculator.bodies[3].mass, 0.0000001f, 1.0f);
+    ImGui::SliderFloat("Simulation time factor", &m_calculator.simulation_time_factor, 1.0, 1000000.0, "%.0f",
+                       ImGuiSliderFlags_Logarithmic);
+    ImGui::Checkbox("Pause", &m_calculator.paused);
+    ImGui::Text("Time: %.1f days", m_calculator.elapsed_simulation_time);
+    ImGui::End();
 }
 
 void SolarSystemGraphics::render_texture() const {
     OpenGLUtils::use_main_framebuffer();
     texture_shader.use();
 
-    for (const auto&[target, position, texture_id, name]: textures) {
+    for (const auto &[target, position, texture_id, name]: textures) {
         OpenGLUtils::bind_texture(target, texture_id);
         texture_shader.setInt(name, position);
     }
@@ -122,13 +119,13 @@ void SolarSystemGraphics::draw_paths() const {
     const auto vp = m_camera.get_vp_matrix();
     path_shader.setMat4("VP", vp);
 
-    for (const auto& body : m_calculator.bodies) {
+    for (const auto &body: m_calculator.bodies) {
         if (body.path_3d.size() < 2) continue;
         path_shader.setVec3("objectColor", body.color);
 
         std::vector path_vec(body.path_3d.begin(), body.path_3d.end());
         ScopedArrayBuffer path{0, path_vbo, path_vec};
-        glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(path_vec.size()));
+        OpenGLUtils::draw_line(path_vec);
     }
 }
 
@@ -138,13 +135,14 @@ void SolarSystemGraphics::render_info() const {
     ImGui::Begin("Planet info");
     ImGui::Text("Name: %s", m_selected_body->name.c_str());
     ImGui::Text("Distance from sun (AU): %.2f", glm::length(m_selected_body->position));
-    ImGui::Text("Orbital velocity (AU/day): %.5f, %.5f, %.5f", m_selected_body->velocity.x, m_selected_body->velocity.y, m_selected_body->velocity.z);
+    ImGui::Text("Orbital velocity (AU/day): %.5f, %.5f, %.5f", m_selected_body->velocity.x, m_selected_body->velocity.y,
+                m_selected_body->velocity.z);
     ImGui::End();
 }
 
 void SolarSystemGraphics::draw_solar_system() {
-    glBindFramebuffer(GL_FRAMEBUFFER, scene_fbo);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    OpenGLUtils::bind_frame_buffer(scene_fbo);
+    OpenGLUtils::clear();
 
     check_selection();
     draw_planets();
@@ -154,47 +152,49 @@ void SolarSystemGraphics::draw_solar_system() {
 }
 
 void SolarSystemGraphics::draw_orbit_view() {
-  ImGui::SetNextWindowSize(ImVec2(200, 200));
-  ImGui::SetNextWindowPos(ImVec2(10, 10)); // top-left corner
-  ImGui::Begin("Orbit View", nullptr,
-               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-               ImGuiWindowFlags_NoCollapse);
+    ImGui::SetNextWindowSize(ImVec2(200, 200));
+    ImGui::SetNextWindowPos(ImVec2(10, 10)); // top-left corner
+    ImGui::Begin("Orbit View", nullptr,
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                 ImGuiWindowFlags_NoCollapse);
 
-  const ImVec2 canvas_pos = ImGui::GetCursorScreenPos();   // Top-left of drawing area
-  const ImVec2 canvas_size = ImGui::GetContentRegionAvail(); // Size of the window
+    const ImVec2 canvas_pos = ImGui::GetCursorScreenPos(); // Top-left of drawing area
+    const ImVec2 canvas_size = ImGui::GetContentRegionAvail(); // Size of the window
 
-  ImDrawList* draw_list = ImGui::GetWindowDrawList();
-  draw_list->AddRectFilled(canvas_pos,
-  ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y),
-    IM_COL32(10, 10, 10, 255));
+    ImDrawList *draw_list = ImGui::GetWindowDrawList();
+    draw_list->AddRectFilled(canvas_pos,
+                             ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y),
+                             IM_COL32(10, 10, 10, 255));
 
-  ImGui::SliderFloat("Scale", &inset_scale, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
-  const auto origin = ImVec2(canvas_pos.x + canvas_size.x * 0.5f,
-                       canvas_pos.y + canvas_size.y * 0.5f);
+    ImGui::SliderFloat("Scale", &inset_scale, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+    const auto origin = ImVec2(canvas_pos.x + canvas_size.x * 0.5f,
+                               canvas_pos.y + canvas_size.y * 0.5f);
 
-  for (const auto& body : m_calculator.bodies) {
-    if (body.path_3d.size() < 2) continue;
-    if (glm::length(body.path_3d.back() - body.path_3d.front()) < 1e-3f) {
-      // Draw a dot if the path is too short or stationary
-      const glm::vec2 pos = body.path_3d.back();
-      auto point = ImVec2(origin.x + pos.x / inset_scale, origin.y - pos.y / inset_scale);
-      draw_list->AddCircleFilled(point, 2.0f, IM_COL32(body.color.r * 255, body.color.g * 255, body.color.b * 255, 255));
-    } else {
-      for (size_t i = 1; i < body.path_3d.size(); ++i) {
-        const glm::vec2 p0 = body.path_3d[i - 1];
-        const glm::vec2 p1 = body.path_3d[i];
+    for (const auto &body: m_calculator.bodies) {
+        if (body.path_3d.size() < 2) continue;
+        if (glm::length(body.path_3d.back() - body.path_3d.front()) < 1e-3f) {
+            // Draw a dot if the path is too short or stationary
+            const glm::vec2 pos = body.path_3d.back();
+            auto point = ImVec2(origin.x + pos.x / inset_scale, origin.y - pos.y / inset_scale);
+            draw_list->AddCircleFilled(point, 2.0f,
+                                       IM_COL32(body.color.r * 255, body.color.g * 255, body.color.b * 255, 255));
+        } else {
+            for (size_t i = 1; i < body.path_3d.size(); ++i) {
+                const glm::vec2 p0 = body.path_3d[i - 1];
+                const glm::vec2 p1 = body.path_3d[i];
 
-        auto point0 = ImVec2(origin.x + p0.x / inset_scale, origin.y - p0.y / inset_scale);
-        auto point1 = ImVec2(origin.x + p1.x / inset_scale, origin.y - p1.y / inset_scale);
+                auto point0 = ImVec2(origin.x + p0.x / inset_scale, origin.y - p0.y / inset_scale);
+                auto point1 = ImVec2(origin.x + p1.x / inset_scale, origin.y - p1.y / inset_scale);
 
-        const auto fraction = static_cast<double>(body.path_3d.size() - i) / body.path_3d.size();
-        const auto alpha = 255 * (1.0 - fraction);
+                const auto fraction = static_cast<double>(body.path_3d.size() - i) / body.path_3d.size();
+                const auto alpha = 255 * (1.0 - fraction);
 
-        draw_list->AddLine(point0, point1, IM_COL32(body.color.r * 255, body.color.g * 255, body.color.b * 255, alpha), 2.0f);
-      }
+                draw_list->AddLine(point0, point1,
+                                   IM_COL32(body.color.r * 255, body.color.g * 255, body.color.b * 255, alpha), 2.0f);
+            }
+        }
     }
-  }
-  ImGui::End();
+    ImGui::End();
 }
 
 

@@ -58,9 +58,9 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/solar_system_graphics.h
         src/shader.cpp
         src/shader.h
-        src/OpenGLUtils.cpp
-        src/OpenGLUtils.h
-        src/ScopedArrayBuffer.h)
+        src/opengl_utils.cpp
+        src/opengl_utils.h
+        src/scoped_array_buffer.h)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
   ${imgui_SOURCE_DIR}
@@ -111,9 +111,9 @@ add_executable(file_loader_test
         src/file_loader.cpp
         test/test_solar_system_calculator.cpp
         test/test_camera.cpp
-        src/OpenGLUtils.cpp
-        src/OpenGLUtils.h
-        src/ScopedArrayBuffer.h
+        src/opengl_utils.cpp
+        src/opengl_utils.h
+        src/scoped_array_buffer.h
 )
 
 target_link_libraries(file_loader_test PRIVATE

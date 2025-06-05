@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "OpenGLUtils.h"
+#include "opengl_utils.h"
 
 class ScopedArrayBuffer {
 public:

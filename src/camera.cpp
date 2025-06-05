@@ -135,20 +135,16 @@ glm::vec3 Camera::get_ray_from_mouse() const {
   const auto mouse_x = x_mouse * high_dpi_scale_factor;
   const auto mouse_y = y_mouse * high_dpi_scale_factor;
 
-  // 2. Convert SDL Y to OpenGL Y (origin is at bottom-left in OpenGL)
   const int ogl_mouse_y = window_height - mouse_y;
 
   const auto viewport = glm::vec4(0.0,0.0,window_width,window_height);
 
-  // 3. Construct screen-space positions
   const glm::vec3 screen_pos_near(mouse_x, ogl_mouse_y, 0.0f); // z = 0 -> near plane
   const glm::vec3 screen_pos_far (mouse_x, ogl_mouse_y, 1.0f); // z = 1 -> far plane
 
-  // 4. Unproject to world space
   const glm::vec3 ray_origin    = glm::unProject(screen_pos_near, view, projection, viewport);
   const glm::vec3 ray_target    = glm::unProject(screen_pos_far,  view, projection, viewport);
 
-  // 5. Ray direction
   return glm::normalize(ray_target - ray_origin);
 }
 
@@ -163,8 +159,4 @@ void Camera::update_field_of_view(const Sint32 wheel_pos) {
 
   if (field_of_view < 1.0f) field_of_view = 1.0f;
   if (field_of_view > 90.0f) field_of_view = 90.0f;
-}
-
-void Camera::update_field_of_view(const bool in) {
-  field_of_view = in ? field_of_view - 1.1f : field_of_view + 1.1f;
 }
