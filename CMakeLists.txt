@@ -50,8 +50,17 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glm)
 
 add_executable(${PROJECT_NAME} src/main.cpp
-        src/FileLoader.cpp
-        src/FileLoader.h)
+        src/file_loader.cpp
+        src/file_loader.h
+        src/solar_system_calculator.cpp
+        src/solar_system_calculator.h
+        src/solar_system_graphics.cpp
+        src/solar_system_graphics.h
+        src/shader.cpp
+        src/shader.h
+        src/opengl_utils.cpp
+        src/opengl_utils.h
+        src/scoped_array_buffer.h)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
   ${imgui_SOURCE_DIR}
@@ -59,13 +68,15 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${glm_SOURCE_DIR}
 )
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/triangle.vert ${CMAKE_CURRENT_BINARY_DIR}/triangle.vert COPYONLY)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/triangle.frag ${CMAKE_CURRENT_BINARY_DIR}/triangle.frag COPYONLY)
+# configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/triangle.vert ${CMAKE_CURRENT_BINARY_DIR}/triangle.vert COPYONLY)
+# configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/triangle.frag ${CMAKE_CURRENT_BINARY_DIR}/triangle.frag COPYONLY)
 
 target_sources(${PROJECT_NAME} PRIVATE
     src/gui_handler.cpp
-    src/load_shader.cpp
+        src/file_loader.cpp
     src/camera.cpp
+        src/solar_system_calculator.cpp
+        src/solar_system_graphics.cpp
 ${imgui_SOURCE_DIR}/imgui.cpp
 ${imgui_SOURCE_DIR}/imgui_draw.cpp
 ${imgui_SOURCE_DIR}/imgui_tables.cpp
@@ -97,21 +108,38 @@ enable_testing()
 
 add_executable(file_loader_test
         test/test_file_loader.cpp
-        src/FileLoader.cpp
+        src/file_loader.cpp
+        test/test_solar_system_calculator.cpp
+        test/test_camera.cpp
+        src/opengl_utils.cpp
+        src/opengl_utils.h
+        src/scoped_array_buffer.h
 )
 
 target_link_libraries(file_loader_test PRIVATE
         GTest::gtest_main
+        SDL2::SDL2
         ${OpenGL_LIBRARY}
 )
 
 target_sources(file_loader_test PRIVATE
-        src/FileLoader.cpp
+        src/file_loader.cpp
+        src/solar_system_calculator.cpp
+        src/camera.cpp
+        ${imgui_SOURCE_DIR}/imgui.cpp
+        ${imgui_SOURCE_DIR}/imgui_draw.cpp
+        ${imgui_SOURCE_DIR}/imgui_tables.cpp
+        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+        ${imgui_SOURCE_DIR}/imgui_demo.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
 target_include_directories(file_loader_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${glm_SOURCE_DIR}
+        ${imgui_SOURCE_DIR}
+        ${imgui_SOURCE_DIR}/backends
 )
 
 include(GoogleTest)

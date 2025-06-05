@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "FileLoader.h"
+#include "file_loader.h"
 
 TEST(FileLoaderTest, CanLoadValidObjFile) {
     const std::string path = "../test/data/arrow.obj";

@@ -35,12 +35,22 @@ struct Shape {
     GLuint normal_buffer_id;
 };
 
+enum class GLType {
+    SHADER, PROGRAM
+  };
+
 class FileLoader {
     static std::pair<GLuint, GLuint> init_shape(std::span<glm::vec3> vertex_buffer_data,
                std::span<glm::vec3> normal_buffer_data);
         public:
     static std::vector<ObjVertex> load_obj_file(std::string_view path);
-    static Shape get_shape(const std::string& path);
+    static Shape load_shape(const std::string& path);
+
+    static void open_shader_file(const std::string &vertex_shader_path, std::string &VertexShaderCode);
+
+    static void check(GLuint id, GLType);
+
+    static GLuint load_shaders(const std::string& vertex_shader_path, const std::string& fragment_shader_path);
 
 };
 
