@@ -1,4 +1,5 @@
 #include "file_loader.h"
+#include "opengl_utils.h"
 
 #include <fstream>
 #include <iostream>
@@ -8,7 +9,7 @@
 #include <unordered_set>
 
 std::vector<ObjVertex> FileLoader::load_obj_file(std::string_view path) {
-  std::cout << "Loading obj file " << path << "\n";
+  std::cout << "Loading obj file: " << path << "\n";
 
   auto file = std::ifstream{};
 

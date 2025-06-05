@@ -20,6 +20,7 @@ struct Body {
   bool is_emitter = false;
   glm::vec3 prev_acceleration;
   const std::size_t max_path = 5000;
+  std::string name;
 };
 
 class SolarSystemCalculator {
