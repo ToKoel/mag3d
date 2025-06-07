@@ -58,14 +58,17 @@ GLuint OpenGLUtils::create_buffer() {
     return buffer_id;
 }
 
-GLuint OpenGLUtils::create_framebuffer() {
+GLuint OpenGLUtils::create_framebuffer(const int32_t width, const int32_t height) {
     GLuint framebuffer_id;
     glGenFramebuffers(1, &framebuffer_id);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_id);
+    create_render_buffer(width, height);
+    check_buffer();
     return framebuffer_id;
 }
 
-Texture OpenGLUtils::setup_texture(const std::string& name, GLuint& texture_id, const std::int32_t& width, const std::int32_t& height, const GLenum color_attachment, const GLenum target) {
+GLuint OpenGLUtils::setup_texture(const std::int32_t& width, const std::int32_t& height) {
+    GLuint texture_id;
     glGenTextures(1, &texture_id);
     glBindTexture(GL_TEXTURE_2D, texture_id);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
@@ -73,9 +76,9 @@ Texture OpenGLUtils::setup_texture(const std::string& name, GLuint& texture_id, 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,  GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, color_attachment, GL_TEXTURE_2D,texture_id, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,texture_id, 0);
 
-    return {.target = target, .position = target - GL_TEXTURE0, .texture_id = texture_id, .name=name};
+    return texture_id;
 }
 
 void OpenGLUtils::draw_triangle_faces(const GLsizei number_of_triangles) {

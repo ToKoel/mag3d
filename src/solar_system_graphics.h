@@ -39,8 +39,8 @@ class SolarSystemGraphics {
     GLuint scene_texture = 0;
     GLuint threshold_texture = 0;
     GLuint depth_render_buffer = 0;
-    GLuint pingpongFBO[2];
-    GLuint pingpongColorbuffers[2];
+    GLuint pingpong_fbo[2];
+    GLuint pingpong_textures[2];
     GLuint threshold_fbo = 0;
 
     float inset_scale{0.015};

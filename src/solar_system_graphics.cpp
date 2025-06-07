@@ -1,6 +1,8 @@
 
 #include "solar_system_graphics.h"
 
+#include <filesystem>
+
 #include "glm/glm.hpp"
 #include "imgui.h"
 #include <glm/gtc/type_ptr.hpp>
@@ -12,33 +14,19 @@ void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
     OpenGLUtils::set_viewport(width, height);
 
     path_vbo = OpenGLUtils::create_buffer();
-    scene_fbo = OpenGLUtils::create_framebuffer();
-    depth_render_buffer = OpenGLUtils::create_render_buffer(width, height);
-    OpenGLUtils::check_buffer();
-    textures.push_back(OpenGLUtils::setup_texture("scene_texture", scene_texture, width, height,
-                                                  GL_COLOR_ATTACHMENT0, GL_TEXTURE0));
+    scene_fbo = OpenGLUtils::create_framebuffer(width, height);
+    scene_texture = OpenGLUtils::setup_texture(width, height);
 
-    glGenFramebuffers(1, &threshold_fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, threshold_fbo);
-    depth_render_buffer = OpenGLUtils::create_render_buffer(width, height);
-    OpenGLUtils::check_buffer();
-    textures.push_back(OpenGLUtils::setup_texture("threshold_texture", threshold_texture, width, height,
-                                                  GL_COLOR_ATTACHMENT0, GL_TEXTURE0));
+    threshold_fbo = OpenGLUtils::create_framebuffer(width, height);
+    threshold_texture = OpenGLUtils::setup_texture(width, height);
 
-    glGenFramebuffers(1, &path_fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, path_fbo);
-    depth_render_buffer = OpenGLUtils::create_render_buffer(width, height);
-    OpenGLUtils::check_buffer();
-    textures.push_back(OpenGLUtils::setup_texture("path_texture", path_texture, width, height,
-                                                  GL_COLOR_ATTACHMENT0, GL_TEXTURE0));
-
+    path_fbo = OpenGLUtils::create_framebuffer(width, height);
+    path_texture = OpenGLUtils::setup_texture(width, height);
 
     for (int i = 0; i < 2; i++) {
-        glGenFramebuffers(1, &pingpongFBO[i]);
-        glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
-        textures.push_back(OpenGLUtils::setup_texture("pingpong_texture" + i, pingpongColorbuffers[i], width, height, GL_COLOR_ATTACHMENT0, GL_TEXTURE0));
+        pingpong_fbo[i] = OpenGLUtils::create_framebuffer(width, height);
+        pingpong_textures[i] = OpenGLUtils::setup_texture(width, height);
     }
-
 }
 
 void SolarSystemGraphics::apply_bloom_blur() const {
@@ -48,9 +36,9 @@ void SolarSystemGraphics::apply_bloom_blur() const {
     blur_shader.use();
     blur_shader.setVec2("tex_size", glm::vec2(m_camera.window_width, m_camera.window_height));
     for(int i = 0; i < blur_passes; ++i) {
-        OpenGLUtils::bind_frame_buffer(pingpongFBO[horizontal]);
+        OpenGLUtils::bind_frame_buffer(pingpong_fbo[horizontal]);
         blur_shader.setBool("horizontal", horizontal);
-        OpenGLUtils::bind_texture(GL_TEXTURE0, first_pass ? threshold_texture : pingpongColorbuffers[!horizontal]);
+        OpenGLUtils::bind_texture(GL_TEXTURE0, first_pass ? threshold_texture : pingpong_textures[!horizontal]);
         OpenGLUtils::draw_triangle_faces(1);
         horizontal = !horizontal;
 
@@ -148,7 +136,7 @@ void SolarSystemGraphics::render_texture() const {
     OpenGLUtils::bind_texture(GL_TEXTURE0, scene_texture);
     texture_shader.setInt("scene_texture", 0);
 
-    OpenGLUtils::bind_texture(GL_TEXTURE1, pingpongColorbuffers[1]);
+    OpenGLUtils::bind_texture(GL_TEXTURE1, pingpong_textures[1]);
     texture_shader.setInt("bloom_texture", 1);
 
     OpenGLUtils::bind_texture(GL_TEXTURE2, path_texture);
@@ -201,7 +189,9 @@ void SolarSystemGraphics::create_threshold_texture() const {
 void SolarSystemGraphics::draw_solar_system() {
     check_selection();
 
-    draw_paths();
+    if (show_paths) {
+        draw_paths();
+    }
     draw_planets(scene_fbo);
     create_threshold_texture();
     apply_bloom_blur();

@@ -20,11 +20,11 @@ class OpenGLUtils {
     public:
     static void bind_array_buffer( GLuint index, GLuint buffer_id);
     static void bind_array_buffer_with_data( GLuint index, GLuint buffer_id, const std::vector<glm::vec3> &);
-    static Texture setup_texture(const std::string& name, GLuint& texture_id, const std::int32_t& width, const std::int32_t& height, GLenum color_attachment, GLenum target);
+    static GLuint setup_texture(const std::int32_t& width, const std::int32_t& height);
     static void draw_triangle_faces(GLsizei number_of_triangles);
     static void disable_array_buffer(GLuint index);
     static void use_main_framebuffer();
-    static GLuint create_framebuffer();
+    static GLuint create_framebuffer(int32_t width, int32_t height);
     static GLuint create_buffer();
     static void set_viewport(int32_t width, int32_t height);
     static std::vector<GLuint> create_draw_buffers(int32_t);
