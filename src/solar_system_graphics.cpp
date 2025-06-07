@@ -43,8 +43,7 @@ void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
 
 void SolarSystemGraphics::apply_bloom_blur() const {
     bool horizontal = true, first_pass = true;
-    constexpr int blur_passes = 10;
-    glDisable(GL_DEPTH_TEST);
+    constexpr int blur_passes = 9;
 
     blur_shader.use();
     blur_shader.setVec2("tex_size", glm::vec2(m_camera.window_width, m_camera.window_height));
@@ -57,7 +56,6 @@ void SolarSystemGraphics::apply_bloom_blur() const {
 
         if (first_pass) first_pass = false;
     }
-    glEnable(GL_DEPTH_TEST);
 }
 
 
@@ -89,7 +87,7 @@ void SolarSystemGraphics::check_selection() {
 }
 
 
-void SolarSystemGraphics::draw_planets(GLuint fbo) {
+void SolarSystemGraphics::draw_planets(const GLuint fbo) {
     OpenGLUtils::bind_frame_buffer(fbo);
     planet_shader.use();
     planet_shader.setVec3("lightColor", glm::vec3(1.0f));

@@ -18,6 +18,7 @@ void main()
     vec2 uv = gl_FragCoord.xy / tex_size;
     // Calculate the weights using the Gaussian equation
     float x = 0.0f;
+    float total = 0.0;
     for (int i = 0; i < radius; i++)
     {
         // Decides the distance between each sample on the Gaussian function
@@ -27,11 +28,17 @@ void main()
         x += 6.0f / radius;
 
         weights[i] = exp(-0.5f * pow(x / spreadBlur, 2.0f)) / (spreadBlur * sqrt(2 * 3.14159265f));
+        total += weights[i];
+    }
+
+    vec2 tex_offset = 1.0f / tex_size;
+    vec3 result = texture(screenTexture,uv).rgb * weights[0];
+
+    if (length(result) < 0.001) {
+        result = vec3(0.0); // treat nearly-black as black
     }
 
 
-    vec2 tex_offset = 1.0f / textureSize(screenTexture, 0);
-    vec3 result = texture(screenTexture,uv).rgb * weights[0];
 
     // Calculate horizontal blur
     if(horizontal)
@@ -55,5 +62,10 @@ void main()
             result += texture(screenTexture, uv - vec2(0.0, tex_offset.y * i)).rgb * weights[i];
         }
     }
-    FragColor = vec4(result, 1.0f);
+
+    if (!all(greaterThanEqual(result, vec3(0.0))) || any(isnan(result)) || any(isinf(result))) {
+        discard;
+    } else {
+        FragColor = vec4(result, 1.0);
+    }
 }

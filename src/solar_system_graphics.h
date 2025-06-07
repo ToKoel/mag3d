@@ -60,9 +60,9 @@ class SolarSystemGraphics {
 
     public:
     bool show_paths{false};
-    bool enable_bloom{false};
-    float bloom_strength{1.0f};
-    float bloom_threshold{0.6f};
+    bool enable_bloom{true};
+    float bloom_strength{0.406f};
+    float bloom_threshold{0.735f};
     SolarSystemGraphics(SolarSystemCalculator& calculator, Camera& camera) : m_calculator(calculator), m_camera(camera) {};
     void init(int32_t, int32_t);
     void draw_control_window();
