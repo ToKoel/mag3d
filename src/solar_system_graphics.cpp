@@ -13,16 +13,53 @@ void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
 
     path_vbo = OpenGLUtils::create_buffer();
     scene_fbo = OpenGLUtils::create_framebuffer();
-
-    const auto draw_buffers = OpenGLUtils::create_draw_buffers(2);
-    textures.push_back(OpenGLUtils::setup_texture("non_emissive_texture", non_emissive_texture, width, height,
-                                                  draw_buffers[0], GL_TEXTURE0));
-    textures.push_back(OpenGLUtils::setup_texture("emissive_texture", emissive_texture, width, height, draw_buffers[1],
-                                                  GL_TEXTURE1));
-
     depth_render_buffer = OpenGLUtils::create_render_buffer(width, height);
     OpenGLUtils::check_buffer();
+    textures.push_back(OpenGLUtils::setup_texture("scene_texture", scene_texture, width, height,
+                                                  GL_COLOR_ATTACHMENT0, GL_TEXTURE0));
+
+    glGenFramebuffers(1, &threshold_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, threshold_fbo);
+    depth_render_buffer = OpenGLUtils::create_render_buffer(width, height);
+    OpenGLUtils::check_buffer();
+    textures.push_back(OpenGLUtils::setup_texture("threshold_texture", threshold_texture, width, height,
+                                                  GL_COLOR_ATTACHMENT0, GL_TEXTURE0));
+
+    glGenFramebuffers(1, &path_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, path_fbo);
+    depth_render_buffer = OpenGLUtils::create_render_buffer(width, height);
+    OpenGLUtils::check_buffer();
+    textures.push_back(OpenGLUtils::setup_texture("path_texture", path_texture, width, height,
+                                                  GL_COLOR_ATTACHMENT0, GL_TEXTURE0));
+
+
+    for (int i = 0; i < 2; i++) {
+        glGenFramebuffers(1, &pingpongFBO[i]);
+        glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
+        textures.push_back(OpenGLUtils::setup_texture("pingpong_texture" + i, pingpongColorbuffers[i], width, height, GL_COLOR_ATTACHMENT0, GL_TEXTURE0));
+    }
+
 }
+
+void SolarSystemGraphics::apply_bloom_blur() const {
+    bool horizontal = true, first_pass = true;
+    constexpr int blur_passes = 10;
+    glDisable(GL_DEPTH_TEST);
+
+    blur_shader.use();
+    blur_shader.setVec2("tex_size", glm::vec2(m_camera.window_width, m_camera.window_height));
+    for(int i = 0; i < blur_passes; ++i) {
+        OpenGLUtils::bind_frame_buffer(pingpongFBO[horizontal]);
+        blur_shader.setBool("horizontal", horizontal);
+        OpenGLUtils::bind_texture(GL_TEXTURE0, first_pass ? threshold_texture : pingpongColorbuffers[!horizontal]);
+        OpenGLUtils::draw_triangle_faces(1);
+        horizontal = !horizontal;
+
+        if (first_pass) first_pass = false;
+    }
+    glEnable(GL_DEPTH_TEST);
+}
+
 
 bool ray_sphere_intersect(const glm::vec3 ray_origin, const glm::vec3 ray_dir, const glm::vec3 sphere_center,
                           const float radius) {
@@ -52,7 +89,8 @@ void SolarSystemGraphics::check_selection() {
 }
 
 
-void SolarSystemGraphics::draw_planets() {
+void SolarSystemGraphics::draw_planets(GLuint fbo) {
+    OpenGLUtils::bind_frame_buffer(fbo);
     planet_shader.use();
     planet_shader.setVec3("lightColor", glm::vec3(1.0f));
 
@@ -90,13 +128,17 @@ bool SolarSystemGraphics::slider_double(const char *label, double &value, const 
     return changed;
 }
 
-void SolarSystemGraphics::draw_control_window() const {
+void SolarSystemGraphics::draw_control_window() {
     ImGui::Begin("Control");
     slider_double("Sun mass", m_calculator.bodies[0].mass, 0.01f, 100.0f);
     slider_double("Earth mass", m_calculator.bodies[3].mass, 0.0000001f, 1.0f);
     ImGui::SliderFloat("Simulation time factor", &m_calculator.simulation_time_factor, 1.0, 1000000.0, "%.0f",
                        ImGuiSliderFlags_Logarithmic);
     ImGui::Checkbox("Pause", &m_calculator.paused);
+    ImGui::Checkbox("Show paths", &show_paths);
+    ImGui::Checkbox("Enable bloom", &enable_bloom);
+    ImGui::SliderFloat("Bloom strength", &bloom_strength, 0.0f, 2.0f, "%.3f");
+    ImGui::SliderFloat("Bloom threshold", &bloom_threshold, 0.0f, 2.0f, "%.3f");
     ImGui::Text("Time: %.1f days", m_calculator.elapsed_simulation_time);
     ImGui::End();
 }
@@ -105,16 +147,25 @@ void SolarSystemGraphics::render_texture() const {
     OpenGLUtils::use_main_framebuffer();
     texture_shader.use();
 
-    for (const auto &[target, position, texture_id, name]: textures) {
-        OpenGLUtils::bind_texture(target, texture_id);
-        texture_shader.setInt(name, position);
-    }
+    OpenGLUtils::bind_texture(GL_TEXTURE0, scene_texture);
+    texture_shader.setInt("scene_texture", 0);
+
+    OpenGLUtils::bind_texture(GL_TEXTURE1, pingpongColorbuffers[1]);
+    texture_shader.setInt("bloom_texture", 1);
+
+    OpenGLUtils::bind_texture(GL_TEXTURE2, path_texture);
+    texture_shader.setInt("path_texture", 2);
 
     texture_shader.setVec2("tex_size", glm::vec2(m_camera.window_width, m_camera.window_height));
+    texture_shader.setBool("enable_bloom",enable_bloom);
+    texture_shader.setFloat("bloom_strength", bloom_strength);
+    texture_shader.setBool("show_paths", show_paths);
     OpenGLUtils::draw_triangle_faces(1);
 }
 
-void SolarSystemGraphics::draw_paths() const {
+void SolarSystemGraphics::draw_paths() {
+    OpenGLUtils::bind_frame_buffer(path_fbo);
+    draw_planets(path_fbo);
     path_shader.use();
     const auto vp = m_camera.get_vp_matrix();
     path_shader.setMat4("VP", vp);
@@ -140,13 +191,22 @@ void SolarSystemGraphics::render_info() const {
     ImGui::End();
 }
 
-void SolarSystemGraphics::draw_solar_system() {
-    OpenGLUtils::bind_frame_buffer(scene_fbo);
-    OpenGLUtils::clear();
+void SolarSystemGraphics::create_threshold_texture() const {
+    OpenGLUtils::bind_frame_buffer(threshold_fbo);
+    threshold_shader.use();
+    threshold_shader.setFloat("threshold", bloom_threshold);
+    threshold_shader.setVec2("tex_size", glm::vec2(m_camera.window_width, m_camera.window_height));
+    OpenGLUtils::bind_texture(GL_TEXTURE0, scene_texture);
+    OpenGLUtils::draw_triangle_faces(1);
+}
 
+void SolarSystemGraphics::draw_solar_system() {
     check_selection();
-    draw_planets();
+
     draw_paths();
+    draw_planets(scene_fbo);
+    create_threshold_texture();
+    apply_bloom_blur();
     render_texture();
     render_info();
 }

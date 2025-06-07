@@ -2,27 +2,27 @@
 
 out vec4 FragColor;
 
-uniform sampler2D non_emissive_texture;
-uniform sampler2D emissive_texture;
+uniform sampler2D scene_texture;
+uniform sampler2D bloom_texture;
+uniform sampler2D path_texture;
+uniform bool enable_bloom;
+uniform float bloom_strength;
 uniform vec2 tex_size;
+uniform bool show_paths;
 
-void main(){
+void main() {
     vec2 uv = gl_FragCoord.xy / tex_size;
-    vec3 base = texture(non_emissive_texture, uv).rgb;
+    vec3 scene_color = texture(scene_texture, uv).rgb;
+    vec3 bloom_color = texture(bloom_texture, uv).rgb;
+    vec3 path_color = texture(path_texture, uv).rgb;
 
-   float offset = 1.0 / 200.0; // smaller = sharper glow
-    vec3 glow = vec3(0.0);
+    vec3 color = scene_color;
+    if (show_paths) color = path_color;
+    if (enable_bloom) color += bloom_strength * bloom_color;
 
-    for (int x = -2; x <= 2; ++x) {
-        for (int y = -2; y <= 2; ++y) {
-            vec2 offset_uv = gl_FragCoord.xy/tex_size + vec2(x, y) * offset;
-            glow += texture(emissive_texture, offset_uv).rgb;
-        }
-    }
+    float exposure = 1.0f;
+    float gamma = 1.0f;
+    vec3 result = vec3(1.0f) - exp(-color * exposure);
 
-    glow /= 25.0;
-
-    vec3 color = base + glow;
-
-    FragColor = vec4(color, 1.0);
+    FragColor.rgb = pow(result, vec3(1.0f / gamma));
 }

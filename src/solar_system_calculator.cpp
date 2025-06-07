@@ -9,7 +9,7 @@ void SolarSystemCalculator::init() {
   const Body sun = {.position = glm::vec3(0),
                     .velocity = glm::vec3(0),
                     .mass = 1.0,
-                    .color = {1.0f, 0.5f, 0.0f},
+                    .color = {1.0f, 0.8f, 0.2f},
                     .max_path = 10,
                     .is_emitter = true,
                     .name = "Sun"};

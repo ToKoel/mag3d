@@ -30,6 +30,7 @@ public:
   double elapsed_simulation_time = 0.0;
   float simulation_time_factor = 1000.0;
   bool paused = false;
+  bool show_paths = false;
 
   void init();
   void update_bodies_verlet(float dt);

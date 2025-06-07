@@ -16,6 +16,7 @@ void OpenGLUtils::bind_array_buffer(const GLuint index, const GLuint buffer_id) 
 
 void OpenGLUtils::bind_frame_buffer(const GLuint buffer_id) {
     glBindFramebuffer(GL_FRAMEBUFFER, buffer_id);
+    clear();
 }
 
 void OpenGLUtils::set_viewport(const int32_t width, const int32_t height) {
@@ -67,9 +68,11 @@ GLuint OpenGLUtils::create_framebuffer() {
 Texture OpenGLUtils::setup_texture(const std::string& name, GLuint& texture_id, const std::int32_t& width, const std::int32_t& height, const GLenum color_attachment, const GLenum target) {
     glGenTextures(1, &texture_id);
     glBindTexture(GL_TEXTURE_2D, texture_id);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,  GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, color_attachment, GL_TEXTURE_2D,texture_id, 0);
 
     return {.target = target, .position = target - GL_TEXTURE0, .texture_id = texture_id, .name=name};
