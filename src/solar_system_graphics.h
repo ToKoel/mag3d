@@ -58,7 +58,7 @@ class SolarSystemGraphics {
     void apply_bloom_blur() const;
     void create_threshold_texture() const;
 
-    static GLuint load_texture();
+    static GLuint load_texture(const std::string& path);
 
     static bool slider_double(const char* label, double& value, float min, float max);
 

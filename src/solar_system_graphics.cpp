@@ -30,11 +30,11 @@ void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
         pingpong_textures[i] = OpenGLUtils::setup_texture(width, height);
     }
 
-    planet_textures["Earth"] = load_texture();
-
+    planet_textures["Earth"] = load_texture("../src/assets/earth.bmp");
+    planet_textures["Venus"] = load_texture("../src/assets/venus.bmp");
 }
 
-GLuint SolarSystemGraphics::load_texture() {
+GLuint SolarSystemGraphics::load_texture(const std::string& path) {
     unsigned int texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -45,7 +45,7 @@ GLuint SolarSystemGraphics::load_texture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     // load and generate the texture
     int width, height, nrChannels;
-    unsigned char *data = stbi_load("../src/assets/earth.bmp", &width, &height, &nrChannels, 0);
+    unsigned char *data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
     if (data)
     {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
