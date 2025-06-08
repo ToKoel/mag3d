@@ -7,9 +7,9 @@
 
 class ScopedArrayBuffer {
 public:
-  ScopedArrayBuffer(const int index, const GLuint buffer_id) {
+  ScopedArrayBuffer(const int index, const GLuint buffer_id, const int size) {
     this->index = index;
-    OpenGLUtils::bind_array_buffer(index, buffer_id);
+    OpenGLUtils::bind_array_buffer(index, buffer_id, size);
   }
   ScopedArrayBuffer(const int index, const GLuint buffer_id,
                     const std::vector<glm::vec3> &data) {

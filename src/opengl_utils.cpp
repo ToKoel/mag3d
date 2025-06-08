@@ -8,10 +8,10 @@
 
 #include "glm/vec3.hpp"
 
-void OpenGLUtils::bind_array_buffer(const GLuint index, const GLuint buffer_id) {
+void OpenGLUtils::bind_array_buffer(const GLuint index, const GLuint buffer_id, const int size) {
     glEnableVertexAttribArray(index);
     glBindBuffer(GL_ARRAY_BUFFER, buffer_id);
-    glVertexAttribPointer(index, 3,GL_FLOAT,GL_FALSE,0, nullptr);
+    glVertexAttribPointer(index, size,GL_FLOAT,GL_FALSE,0, nullptr);
 }
 
 void OpenGLUtils::bind_frame_buffer(const GLuint buffer_id) {
@@ -24,7 +24,7 @@ void OpenGLUtils::set_viewport(const int32_t width, const int32_t height) {
 }
 
 void OpenGLUtils::bind_array_buffer_with_data(const GLuint index, const GLuint buffer_id, const std::vector<glm::vec3> &data) {
-    bind_array_buffer(index, buffer_id);
+    bind_array_buffer(index, buffer_id, 3);
     glBufferData(GL_ARRAY_BUFFER,data.size() * sizeof(glm::vec3),
                  data.data(), GL_DYNAMIC_DRAW);
 }

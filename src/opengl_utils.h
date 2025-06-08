@@ -18,7 +18,7 @@ struct Texture {
 
 class OpenGLUtils {
     public:
-    static void bind_array_buffer( GLuint index, GLuint buffer_id);
+    static void bind_array_buffer( GLuint index, GLuint buffer_id, int size);
     static void bind_array_buffer_with_data( GLuint index, GLuint buffer_id, const std::vector<glm::vec3> &);
     static GLuint setup_texture(const std::int32_t& width, const std::int32_t& height);
     static void draw_triangle_faces(GLsizei number_of_triangles);

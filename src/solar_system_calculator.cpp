@@ -12,6 +12,8 @@ void SolarSystemCalculator::init() {
                     .color = {1.0f, 0.8f, 0.2f},
                     .max_path = 10,
                     .is_emitter = true,
+      .revolution_speed = 0.0,
+      .revolution = 0.0,
                     .name = "Sun"};
   const Body mercury = {
       .position = glm::vec3(0.39, 0.0f, 0.0f),
@@ -21,6 +23,8 @@ void SolarSystemCalculator::init() {
       .mass = 1.1e-7,
       .color = {0.678f, 0.6588f, 0.647f},
       .max_path = 2000,
+      .revolution_speed = 0.0,
+      .revolution = 0.0,
       .name = "Mercury"};
   const Body venus = {
       .position = glm::vec3(0.72, 0.0f, 0.0f),
@@ -28,6 +32,8 @@ void SolarSystemCalculator::init() {
           glm::vec3(0.0f, 0.020225742 * cos(orbit_inclinations.at("Venus")),
                     0.020225742 * sin(orbit_inclinations.at("Venus"))),
       .mass = 1.63e-6,
+      .revolution_speed = 0.0,
+      .revolution = 0.0,
       .color = {0.7568f, 0.56078f, 0.0901f},
       .name = "Venus"};
   const Body earth = {
@@ -37,6 +43,10 @@ void SolarSystemCalculator::init() {
                     0.017199389 * sin(orbit_inclinations.at("Earth"))),
       .mass = 2e-6,
       .color = {0.4196f, 0.57647f, 0.83921f},
+      .revolution = 0.0,
+      .revolution_speed = 1.002737915497,
+      .inclination = glm::radians(23.5),
+      .max_path = 1000,
       .name = "Earth"};
   const Body mars = {.position = glm::vec3(1.5, 0.0f, 0.0f),
                      .velocity = glm::vec3(
@@ -44,6 +54,8 @@ void SolarSystemCalculator::init() {
                          0.0139056311 * sin(orbit_inclinations.at("Mars"))),
                      .mass = 3.213e-7,
                      .color = {0.757f, 0.27f, 0.0549f},
+      .revolution_speed = 0.0,
+      .revolution = 0.0,
                      .max_path = 10000,
                      .name = "Mars"};
   bodies.push_back(sun);
@@ -87,7 +99,8 @@ void SolarSystemCalculator::update_bodies_verlet(const float dt) {
 
   for (auto &body : bodies) {
     glm::vec3 new_acceleration = body.force / static_cast<float>(body.mass);
-
+      body.revolution += body.revolution_speed * dt;
+     // body.revolution = std::fmod(body.revolution, glm::radians(360.0));
     body.velocity += 0.5f * (body.prev_acceleration + new_acceleration) * dt;
     body.draw_position = body.position * position_scale;
     body.path_3d.emplace_back(body.draw_position);

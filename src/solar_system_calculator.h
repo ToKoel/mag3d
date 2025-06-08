@@ -21,6 +21,9 @@ struct Body {
   glm::vec3 prev_acceleration;
   const std::size_t max_path = 5000;
   std::string name;
+  double revolution = 0.0;
+  double revolution_speed = 0.0; // degrees/s
+  double inclination = 0.0;
 };
 
 class SolarSystemCalculator {

@@ -121,6 +121,9 @@ void SolarSystemGraphics::draw_planets(const GLuint fbo) {
         auto model = glm::translate(glm::mat4(1.0f), body.draw_position);
         model = glm::scale(model,
                            glm::vec3(static_cast<float>(std::min(body.mass * 50000.0, 0.2))));
+        model = glm::rotate(model, glm::radians(270.0f) + static_cast<float>(body.inclination), glm::vec3(1.0f, 0.0f, 0.0f));
+        model = glm::rotate(model, static_cast<float>(body.revolution), glm::vec3(0.0f, 1.0f, 0.0f));
+
         auto mvp = vp * model;
 
         planet_shader.setBool("isEmissive", body.is_emitter);
@@ -137,12 +140,9 @@ void SolarSystemGraphics::draw_planets(const GLuint fbo) {
             planet_shader.setInt("planetTexture", 0);
         }
 
-        ScopedArrayBuffer vertex_buffer{0, planet_shape.buffers.vertex_buffer_id};
-        ScopedArrayBuffer normal_buffer{1, planet_shape.buffers.normal_buffer_id};
-        //ScopedArrayBuffer uv_buffer{2, planet_shape.buffers.uvs_buffer_id};
-        glEnableVertexAttribArray(2);
-        glBindBuffer(GL_ARRAY_BUFFER, planet_shape.buffers.uvs_buffer_id);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0,  nullptr);
+        ScopedArrayBuffer vertex_buffer{0, planet_shape.buffers.vertex_buffer_id, 3};
+        ScopedArrayBuffer normal_buffer{1, planet_shape.buffers.normal_buffer_id, 3};
+        ScopedArrayBuffer uv_buffer{2, planet_shape.buffers.uvs_buffer_id, 2};
 
         OpenGLUtils::draw_triangle_faces(planet_shape.number_of_triangles);
     }
