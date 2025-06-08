@@ -24,6 +24,8 @@ class SolarSystemGraphics {
     const std::string blur_shader_path = "../src/shaders/gaussian_blur.frag";
     const std::string threshold_shader_path = "../src/shaders/threshold.frag";
 
+    std::unordered_map<std::string, GLuint> planet_textures;
+
     Shader planet_shader{planet_vertex_shader_path, planet_fragment_shader_path};
     Shader path_shader{path_vertex_shader_path, path_fragment_shader_path};
     Shader texture_shader{passthrough_vertex_shader_path, texture_fragment_shader_path};
@@ -55,6 +57,8 @@ class SolarSystemGraphics {
     void render_info() const;
     void apply_bloom_blur() const;
     void create_threshold_texture() const;
+
+    static GLuint load_texture();
 
     static bool slider_double(const char* label, double& value, float min, float max);
 

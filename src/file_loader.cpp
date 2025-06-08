@@ -74,9 +74,9 @@ std::vector<ObjVertex> FileLoader::load_obj_file(std::string_view path) {
   return vertices;
 }
 
-std::pair<GLuint, GLuint>
-FileLoader::init_shape(const std::span<glm::vec3> vertex_buffer_data,
-                       const std::span<glm::vec3> normal_buffer_data) {
+Buffers FileLoader::init_shape(const std::span<glm::vec3> vertex_buffer_data,
+                       const std::span<glm::vec3> normal_buffer_data,
+                       const std::span<glm::vec2> uvs_buffer_data) {
 
   GLuint vertex_array_id;
   glGenVertexArrays(1, &vertex_array_id);
@@ -98,7 +98,15 @@ FileLoader::init_shape(const std::span<glm::vec3> vertex_buffer_data,
       static_cast<GLsizeiptr>(sizeof(glm::vec3) * normal_buffer_data.size()),
       normal_buffer_data.data(), GL_STATIC_DRAW);
 
-  return {vertex_buffer_id, normal_buffer_id};
+  GLuint uv_buffer_id;
+  glGenBuffers(1, &uv_buffer_id);
+  glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
+  glBufferData(
+      GL_ARRAY_BUFFER,
+      static_cast<GLsizeiptr>(sizeof(glm::vec2) * uvs_buffer_data.size()),
+      uvs_buffer_data.data(), GL_STATIC_DRAW);
+
+  return {vertex_buffer_id, normal_buffer_id, uv_buffer_id};
 }
 
 Shape FileLoader::load_shape(const std::string &path) {
@@ -106,13 +114,17 @@ Shape FileLoader::load_shape(const std::string &path) {
   std::vector<glm::vec3> positions(vertices.size());
   std::ranges::transform(vertices, positions.begin(),
                          [](const ObjVertex &v) { return v.position; });
+
   std::vector<glm::vec3> normals(vertices.size());
   std::ranges::transform(vertices, normals.begin(),
                          [](const ObjVertex &v) { return v.normal; });
 
-  auto [vertex_buffer_id, normal_buffer_id] = init_shape(positions, normals);
-  return {static_cast<GLsizei>(vertices.size()), vertex_buffer_id,
-          normal_buffer_id};
+  std::vector<glm::vec2> uvs(vertices.size());
+  std::ranges::transform(vertices, uvs.begin(),
+                         [](const ObjVertex &v) { return v.uvs; });
+
+  const auto buffers = init_shape(positions, normals, uvs);
+  return {static_cast<GLsizei>(vertices.size()), buffers};
 }
 
 void FileLoader::open_shader_file(const std::string &vertex_shader_path,

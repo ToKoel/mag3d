@@ -28,20 +28,25 @@ struct ObjVertex {
     }
 };
 
+struct Buffers {
+    GLuint vertex_buffer_id;
+    GLuint normal_buffer_id;
+    GLuint uvs_buffer_id;
+};
 
 struct Shape {
     GLsizei number_of_triangles;
-    GLuint vertex_buffer_id;
-    GLuint normal_buffer_id;
+    Buffers buffers;
 };
 
 enum class GLType {
     SHADER, PROGRAM
   };
 
+
 class FileLoader {
-    static std::pair<GLuint, GLuint> init_shape(std::span<glm::vec3> vertex_buffer_data,
-               std::span<glm::vec3> normal_buffer_data);
+    static Buffers init_shape(std::span<glm::vec3> vertex_buffer_data,
+               std::span<glm::vec3> normal_buffer_data, std::span<glm::vec2> uvs_buffer_data);
         public:
     static std::vector<ObjVertex> load_obj_file(std::string_view path);
     static Shape load_shape(const std::string& path);

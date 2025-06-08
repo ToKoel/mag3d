@@ -2,19 +2,26 @@
 
 in vec3 FragPos;
 in vec3 Normal;
+in vec2 TexCoord;
 
 uniform vec3 lightPos;
 uniform vec3 objectColor;
 uniform vec3 lightColor;
 uniform bool isEmissive;
 uniform bool selected;
+uniform sampler2D planetTexture;
+uniform bool useTexture;
 
 layout(location = 0) out vec4 color;
 
 
 void main() {
+	vec3 baseColor = useTexture
+	? texture(planetTexture, TexCoord).rgb
+	: objectColor;
+
 	if (isEmissive) {
-		color = vec4(objectColor, 1.0);
+		color = vec4(baseColor * 2.0f, 1.0);
 	} else {
 		// Ambient
 		float ambientStrength = 0.2;
@@ -27,7 +34,7 @@ void main() {
 		vec3 diffuse = diff * lightColor;
 
 		// Combine
-		vec3 result = (ambient + diffuse) * objectColor;
+		vec3 result = (ambient + diffuse) * baseColor;
 
 		color = vec4(result, 1.0);
 		if (selected){

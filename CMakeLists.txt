@@ -60,7 +60,9 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/shader.h
         src/opengl_utils.cpp
         src/opengl_utils.h
-        src/scoped_array_buffer.h)
+        src/scoped_array_buffer.h
+        src/stb_image.h
+        src/stb_image.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
   ${imgui_SOURCE_DIR}

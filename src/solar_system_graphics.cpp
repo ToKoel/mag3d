@@ -10,6 +10,8 @@
 #include "opengl_utils.h"
 #include "scoped_array_buffer.h"
 
+#include "stb_image.h"
+
 void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
     OpenGLUtils::set_viewport(width, height);
 
@@ -27,6 +29,34 @@ void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
         pingpong_fbo[i] = OpenGLUtils::create_framebuffer(width, height);
         pingpong_textures[i] = OpenGLUtils::setup_texture(width, height);
     }
+
+    planet_textures["Earth"] = load_texture();
+
+}
+
+GLuint SolarSystemGraphics::load_texture() {
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    // set the texture wrapping/filtering options (on the currently bound texture object)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // load and generate the texture
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load("../src/assets/earth.bmp", &width, &height, &nrChannels, 0);
+    if (data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+    return texture;
 }
 
 void SolarSystemGraphics::apply_bloom_blur() const {
@@ -99,9 +129,20 @@ void SolarSystemGraphics::draw_planets(const GLuint fbo) {
         planet_shader.setMat4("M", model);
         planet_shader.setBool("selected", &body == m_selected_body);
         planet_shader.setVec3("objectColor", body.color);
+        planet_shader.setBool("useTexture", planet_textures.contains(body.name));
 
-        ScopedArrayBuffer vertex_buffer{0, planet_shape.vertex_buffer_id};
-        ScopedArrayBuffer normal_buffer{1, planet_shape.normal_buffer_id};
+        if (planet_textures.contains(body.name)) {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, planet_textures[body.name]);
+            planet_shader.setInt("planetTexture", 0);
+        }
+
+        ScopedArrayBuffer vertex_buffer{0, planet_shape.buffers.vertex_buffer_id};
+        ScopedArrayBuffer normal_buffer{1, planet_shape.buffers.normal_buffer_id};
+        //ScopedArrayBuffer uv_buffer{2, planet_shape.buffers.uvs_buffer_id};
+        glEnableVertexAttribArray(2);
+        glBindBuffer(GL_ARRAY_BUFFER, planet_shape.buffers.uvs_buffer_id);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0,  nullptr);
 
         OpenGLUtils::draw_triangle_faces(planet_shape.number_of_triangles);
     }
