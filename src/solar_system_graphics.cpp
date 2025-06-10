@@ -31,7 +31,9 @@ void SolarSystemGraphics::init(const int32_t width, const int32_t height) {
     }
 
     planet_textures["Earth"] = load_texture("../src/assets/earth.bmp");
+    planet_textures["Earth_night"] = load_texture("../src/assets/earth_night.bmp");
     planet_textures["Venus"] = load_texture("../src/assets/venus.bmp");
+    planet_textures["Mars"] = load_texture("../src/assets/mars.bmp");
 }
 
 GLuint SolarSystemGraphics::load_texture(const std::string& path) {
@@ -121,7 +123,7 @@ void SolarSystemGraphics::draw_planets(const GLuint fbo) {
         auto model = glm::translate(glm::mat4(1.0f), body.draw_position);
         model = glm::scale(model,
                            glm::vec3(static_cast<float>(std::min(body.mass * 50000.0, 0.2))));
-        model = glm::rotate(model, glm::radians(270.0f) + static_cast<float>(body.inclination), glm::vec3(1.0f, 0.0f, 0.0f));
+        model = glm::rotate(model, glm::radians(90.0f) + static_cast<float>(body.inclination), glm::vec3(1.0f, 0.0f, 0.0f));
         model = glm::rotate(model, static_cast<float>(body.revolution), glm::vec3(0.0f, 1.0f, 0.0f));
 
         auto mvp = vp * model;
@@ -133,11 +135,19 @@ void SolarSystemGraphics::draw_planets(const GLuint fbo) {
         planet_shader.setBool("selected", &body == m_selected_body);
         planet_shader.setVec3("objectColor", body.color);
         planet_shader.setBool("useTexture", planet_textures.contains(body.name));
+        planet_shader.setBool("hasNightTexture",false);
 
         if (planet_textures.contains(body.name)) {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, planet_textures[body.name]);
             planet_shader.setInt("planetTexture", 0);
+        }
+
+        if (planet_textures.contains(body.name + "_night")) {
+            planet_shader.setBool("hasNightTexture", true);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, planet_textures[body.name + "_night"]);
+            planet_shader.setInt("planetNightTexture", 1);
         }
 
         ScopedArrayBuffer vertex_buffer{0, planet_shape.buffers.vertex_buffer_id, 3};

@@ -64,10 +64,10 @@ std::vector<ObjVertex> FileLoader::load_obj_file(std::string_view path) {
         if (indices[2] > 0 && indices[2] <= normals.size())
           vertex.normal = normals.at(indices[2] - 1);
 
-        if (!vertices_hashes.contains(indices[0])) {
-          vertices_hashes.insert(vertex.hash());
+       // if (!vertices_hashes.contains(indices[0])) {
+       //   vertices_hashes.insert(vertex.hash());
           vertices.push_back(vertex);
-        }
+       // }
       }
     }
   }

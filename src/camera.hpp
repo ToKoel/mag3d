@@ -19,7 +19,7 @@ class Camera {
 
 
 
-  float speed = 0.005f;
+  float speed = 0.001f;
   float mouse_speed = 0.01f;
   bool dragging = false;
   float radius = 5.0f;

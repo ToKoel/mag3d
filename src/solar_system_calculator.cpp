@@ -46,7 +46,6 @@ void SolarSystemCalculator::init() {
       .revolution = 0.0,
       .revolution_speed = 1.002737915497,
       .inclination = glm::radians(23.5),
-      .max_path = 1000,
       .name = "Earth"};
   const Body mars = {.position = glm::vec3(1.5, 0.0f, 0.0f),
                      .velocity = glm::vec3(
@@ -100,7 +99,7 @@ void SolarSystemCalculator::update_bodies_verlet(const float dt) {
   for (auto &body : bodies) {
     glm::vec3 new_acceleration = body.force / static_cast<float>(body.mass);
       body.revolution += body.revolution_speed * dt;
-     // body.revolution = std::fmod(body.revolution, glm::radians(360.0));
+      body.revolution = std::fmod(body.revolution, glm::radians(360.0));
     body.velocity += 0.5f * (body.prev_acceleration + new_acceleration) * dt;
     body.draw_position = body.position * position_scale;
     body.path_3d.emplace_back(body.draw_position);

@@ -18,7 +18,7 @@ class SolarSystemGraphics {
     const std::string planet_vertex_shader_path = "../src/shaders/planet.vert";
     const std::string path_fragment_shader_path = "../src/shaders/path.frag";
     const std::string path_vertex_shader_path = "../src/shaders/path.vert";
-    const std::string planet_shape_path = "../src/obj_files/sphere_auto_smooth.obj";
+    const std::string planet_shape_path = "../src/obj_files/sphere_res_auto_smooth.obj";
     const std::string passthrough_vertex_shader_path = "../src/shaders/passthrough.vert";
     const std::string texture_fragment_shader_path = "../src/shaders/texture.frag";
     const std::string blur_shader_path = "../src/shaders/gaussian_blur.frag";
@@ -66,7 +66,7 @@ class SolarSystemGraphics {
     bool show_paths{false};
     bool enable_bloom{true};
     float bloom_strength{0.406f};
-    float bloom_threshold{1.4f};
+    float bloom_threshold{2.5f};
     SolarSystemGraphics(SolarSystemCalculator& calculator, Camera& camera) : m_calculator(calculator), m_camera(camera) {};
     void init(int32_t, int32_t);
     void draw_control_window();

@@ -10,31 +10,43 @@ uniform vec3 lightColor;
 uniform bool isEmissive;
 uniform bool selected;
 uniform sampler2D planetTexture;
+uniform sampler2D planetNightTexture;
 uniform bool useTexture;
+uniform bool hasNightTexture;
 
 layout(location = 0) out vec4 color;
 
 
 void main() {
-	vec3 baseColor = useTexture
-	? texture(planetTexture, TexCoord).rgb
-	: objectColor;
-
 	if (isEmissive) {
-		color = vec4(baseColor * 2.0f, 1.0);
+		color = vec4(objectColor * 4.0f, 1.0);
 	} else {
 		// Ambient
-		float ambientStrength = 0.2;
+		float ambientStrength = 0.3;
 		vec3 ambient = ambientStrength * lightColor;
 
 		// Diffuse
 		vec3 norm = normalize(Normal);
 		vec3 lightDir = normalize(lightPos - FragPos);
 		float diff = max(dot(norm, lightDir), 0.0);
-		vec3 diffuse = diff * lightColor;
+		float diffuseStrength = 2.0;
+		vec3 diffuse = diff * lightColor * diffuseStrength;
 
 		// Combine
-		vec3 result = (ambient + diffuse) * baseColor;
+		vec3 result = (ambient + diffuse) * objectColor;
+
+		if (useTexture) {
+			vec2 correctedUV = vec2(TexCoord.x, 1.0 - TexCoord.y);
+			vec3 dayColor = texture(planetTexture, correctedUV).rgb;
+			vec3 textures = dayColor;
+			if (hasNightTexture) {
+				vec3 nightColor = texture(planetNightTexture, correctedUV).rgb;
+				// Blend between day and night map
+				textures = mix(nightColor * 2.0, dayColor, diff);
+			}
+			result = (ambient + diffuse) * textures;
+		}
+
 
 		color = vec4(result, 1.0);
 		if (selected){
